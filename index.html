@@ -8,153 +8,67 @@
   <meta name="apple-mobile-web-app-title" content="FlightDeck">
   <link rel="manifest" href="manifest.json">
   <title>FlightDeck</title>
-  <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
-
     :root {
-      --amber: #FFB200;
-      --dim:   #554400;
-      --green: #00E87A;
-      --red:   #FF5050;
-      --white: #D8D8D8;
-      --muted: #3A3200;
-      --bg:    #020202;
-      --rule:  #141200;
+      --bg:       #060c14;
+      --card:     #0b1220;
+      --border:   #1a2840;
+      --dim:      #3a5070;
+      --mid:      #7090b0;
+      --text:     #dce8f4;
+      --green:    #3dcc6a;
+      --red:      #ff5555;
+      --amber:    #cc9900;
+      --blue:     #4488dd;
     }
-
     html, body {
       width:100%; height:100%;
-      background: var(--bg);
-      color: var(--amber);
-      font-family: 'VT323', monospace;
-      overflow: hidden;
+      background:var(--bg);
+      color:var(--text);
+      font-family:'Inter', sans-serif;
+      overflow:hidden;
       -webkit-user-select:none; user-select:none;
       -webkit-tap-highlight-color:transparent;
     }
 
-    /* LED dot grid on all screens */
-    body::after {
-      content:'';
-      position:fixed; inset:0;
-      background-image: radial-gradient(circle, #0d0b04 1.5px, transparent 1.5px);
-      background-size: 5px 5px;
-      pointer-events:none; z-index:0;
-    }
-
-    /* =====================================================
-       WELCOME / ONBOARDING SCREEN
-       Shown when no location is saved.
-       Zero coordinates in this file — all stored on-device.
-    ===================================================== */
+    /* ---- WELCOME SCREEN ---- */
     #welcome {
-      position:fixed; inset:0; z-index:100;
+      position:fixed; inset:0; z-index:200;
+      background:var(--bg);
       display:flex; flex-direction:column;
       align-items:center; justify-content:center;
-      gap:0; padding:24px;
+      gap:0; padding:32px;
     }
     #welcome.hidden { display:none; }
-
-    .w-logo {
-      font-size: clamp(38px,8vw,72px);
-      color: var(--amber);
-      letter-spacing: 6px;
-      line-height:1;
-      margin-bottom: 6px;
-    }
-    .w-sub {
-      font-size: clamp(13px,2vw,20px);
-      color: var(--dim);
-      letter-spacing: 3px;
-      margin-bottom: 32px;
-      text-align:center;
-    }
-    .w-desc {
-      font-size: clamp(15px,2.2vw,22px);
-      color: #444400;
-      text-align:center;
-      max-width: 480px;
-      line-height:1.5;
-      margin-bottom: 36px;
-    }
-
-    /* Big locate button */
+    .w-logo  { font-size:clamp(36px,8vw,64px); font-weight:600; color:var(--text); letter-spacing:-1px; margin-bottom:6px; }
+    .w-sub   { font-size:clamp(13px,2vw,18px); color:var(--mid); margin-bottom:36px; letter-spacing:.5px; }
+    .w-desc  { font-size:clamp(14px,2vw,17px); color:var(--dim); text-align:center; max-width:440px; line-height:1.6; margin-bottom:40px; }
     #btn-locate {
-      font-family:'VT323',monospace;
-      font-size: clamp(22px,3.5vw,34px);
-      color: #020202;
-      background: var(--amber);
-      border: none;
-      padding: 12px 40px;
-      border-radius: 4px;
-      cursor:pointer;
-      letter-spacing:3px;
-      margin-bottom:20px;
-      transition: background 0.15s;
+      font-family:'Inter',sans-serif; font-size:16px; font-weight:500;
+      background:#1a4a8a; border:1px solid #2a6ab0; color:#90c0f0;
+      padding:12px 40px; border-radius:8px; cursor:pointer;
+      margin-bottom:18px; transition:background .15s;
     }
-    #btn-locate:hover  { background: #ffc733; }
-    #btn-locate:active { background: #cc8e00; }
-    #btn-locate:disabled { background:#554400; color:#333; cursor:default; }
-
-    .w-or {
-      font-size:15px; color:#2a2400; margin-bottom:14px; letter-spacing:2px;
-    }
-
-    /* Manual entry toggle */
-    #btn-manual {
-      font-family:'VT323',monospace; font-size:17px;
-      color: var(--dim); background:none; border:none;
-      cursor:pointer; letter-spacing:2px; text-decoration:underline;
-      margin-bottom:20px;
-    }
-    #btn-manual:hover { color: var(--amber); }
-
-    #manual-form {
-      display:none; flex-direction:column; gap:10px;
-      width:100%; max-width:320px;
-      margin-top:4px;
-    }
+    #btn-locate:hover  { background:#1e5a9a; }
+    #btn-locate:disabled { opacity:.5; cursor:default; }
+    .w-or    { font-size:13px; color:var(--dim); margin-bottom:14px; }
+    #btn-manual { font-family:'Inter',sans-serif; font-size:14px; color:var(--dim); background:none; border:none; cursor:pointer; text-decoration:underline; margin-bottom:20px; }
+    #btn-manual:hover { color:var(--mid); }
+    #manual-form { display:none; flex-direction:column; gap:10px; width:100%; max-width:300px; }
     #manual-form.show { display:flex; }
-
-    .mf-row { display:flex; flex-direction:column; gap:3px; }
-    .mf-lbl { font-size:13px; color:var(--dim); letter-spacing:2px; }
-    .mf-inp {
-      font-family:'VT323',monospace; font-size:20px;
-      background:#0d0c00; border:1px solid #2a2800;
-      color:var(--amber); padding:6px 10px; border-radius:4px; outline:none;
-      width:100%;
-    }
-    .mf-inp:focus { border-color: var(--dim); }
-
-    #btn-manual-go {
-      font-family:'VT323',monospace; font-size:20px;
-      color:#020202; background:var(--dim);
-      border:none; padding:8px 20px; border-radius:4px;
-      cursor:pointer; letter-spacing:2px; margin-top:4px;
-    }
-    #btn-manual-go:hover { background: var(--amber); }
-
-    .w-error {
-      font-size:16px; color:var(--red);
-      text-align:center; max-width:380px;
-      margin-top:14px; letter-spacing:1px;
-      min-height:22px;
-    }
-
-    /* Status text on the welcome screen (locating…) */
-    .w-status {
-      font-size: clamp(18px,2.8vw,28px);
-      color: var(--dim);
-      letter-spacing:4px;
-      margin-top:8px;
-    }
-    .w-blink { animation: blink 1s step-end infinite; }
+    .mf-lbl { font-size:12px; color:var(--dim); margin-bottom:2px; letter-spacing:.5px; }
+    .mf-inp { font-family:'Inter',sans-serif; font-size:16px; background:#0d1828; border:1px solid var(--border); color:var(--text); padding:8px 12px; border-radius:6px; outline:none; width:100%; }
+    .mf-inp:focus { border-color:#2a4a6a; }
+    #btn-manual-go { font-family:'Inter',sans-serif; font-size:15px; font-weight:500; background:#1a3a5a; border:1px solid #2a5070; color:var(--mid); padding:9px; border-radius:6px; cursor:pointer; margin-top:4px; }
+    #btn-manual-go:hover { background:#1e4a6a; }
+    .w-status { font-size:16px; color:var(--dim); margin-top:12px; }
+    .w-error  { font-size:14px; color:var(--red); text-align:center; max-width:380px; margin-top:10px; min-height:20px; }
+    .blink    { animation:blink 1s step-end infinite; }
     @keyframes blink { 50%{opacity:0;} }
 
-
-    /* =====================================================
-       MAIN APP — shown once location is known
-    ===================================================== */
+    /* ---- MAIN APP ---- */
     #app {
       position:relative; z-index:1;
       display:flex; flex-direction:column;
@@ -165,296 +79,264 @@
     #app.hidden { display:none; }
 
     /* Header */
-    #header {
+    #hdr {
       display:flex; align-items:center; justify-content:space-between;
-      padding:0 14px; height:46px;
-      border-bottom:1px solid var(--rule);
-      flex-shrink:0;
+      padding:0 14px; height:40px; flex-shrink:0;
+      border-bottom:1px solid var(--border);
     }
-    .h-loc   { font-size:clamp(13px,1.8vw,22px); color:var(--amber); letter-spacing:1px; cursor:pointer; }
-    .h-loc:hover { color:#ffc733; }
-    .h-mid   { display:flex; align-items:center; gap:10px; }
-    .h-clock { font-size:clamp(18px,2.5vw,30px); color:var(--amber); }
+    .hdr-loc  { font-size:13px; color:var(--mid); cursor:pointer; }
+    .hdr-loc:hover { color:var(--text); }
+    .hdr-mid  { display:flex; align-items:center; gap:8px; }
+    .hdr-clk  { font-size:13px; color:var(--mid); font-variant-numeric:tabular-nums; }
+    .live-dot { width:7px; height:7px; border-radius:50%; background:#00aa44; }
+    .live-dot.ok    { animation:pulse 2.4s ease-in-out infinite; }
+    .live-dot.stale { background:#886600; animation:none; }
+    .live-dot.err   { background:#aa3300; animation:none; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.2} }
+    .hdr-status { font-size:12px; }
+    .hdr-stale-time { font-size:11px; color:#886600; background:#1a1200; border:1px solid #3a2800; padding:1px 7px; border-radius:4px; }
 
-    .dot { width:8px; height:8px; border-radius:50%; background:#00aa44; }
-    .dot.ok  { animation:pulse 2.4s ease-in-out infinite; }
-    .dot.err { background:#aa3300; animation:none; }
-    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.2} }
-
-    .h-live  { font-size:clamp(14px,1.8vw,22px); color:#446600; }
-    .h-count { font-size:clamp(12px,1.5vw,18px); color:#333300; }
-
-    /* Board */
-    #board { flex:1; display:flex; flex-direction:column; overflow:hidden; }
-
-    .row {
-      display:flex; align-items:center;
-      padding:0 14px 0 10px;
-      border-bottom:1px solid var(--rule);
-      flex:1; min-height:0;
-    }
-    .row:nth-child(odd) { background:rgba(18,16,0,0.5); }
-
-    .f-cs {
-      font-size:clamp(20px,3.8vh,42px);
-      color:var(--amber); letter-spacing:1px; line-height:1;
-      width:clamp(100px,11vw,155px); flex-shrink:0;
-    }
-    .f-name {
-      font-size:clamp(16px,2.8vh,30px);
-      color:var(--white); flex:1; min-width:0;
-      overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
-      padding-right:8px; line-height:1;
-    }
-    .f-badge {
-      display:inline-block; font-size:clamp(9px,1.2vh,14px);
-      padding:1px 6px; border-radius:3px;
-      margin-left:8px; vertical-align:middle; flex-shrink:0;
-    }
-    .b-appr { background:#1a0800; color:#FF8822; border:1px solid #442200; }
-    .b-dept { background:#041000; color:#66BB00; border:1px solid #224400; }
-    .b-enrt { background:#080814; color:#4488FF; border:1px solid #223366; }
-    .b-type { background:#0a0a08; color:#666644; border:1px solid #333322; font-size:clamp(8px,1vh,12px); }
-
-    .f-metrics { display:flex; align-items:center; gap:clamp(10px,2vw,28px); flex-shrink:0; }
-
-    .f-m { display:flex; flex-direction:column; align-items:flex-end; min-width:clamp(60px,8vw,110px); }
-    .f-lbl { font-size:clamp(9px,1.1vh,14px); color:var(--muted); line-height:1; }
-    .f-val { font-size:clamp(16px,2.8vh,34px); line-height:1.05; }
-
-    .f-arrow {
-      font-size:clamp(20px,3.6vh,44px);
-      width:clamp(28px,3.5vw,48px);
-      text-align:center; flex-shrink:0; line-height:1;
-    }
-    .f-dist {
-      font-size:clamp(12px,1.8vh,22px); color:var(--muted);
-      width:clamp(36px,4.5vw,58px); text-align:right; flex-shrink:0;
+    /* Main board */
+    #board {
+      flex:1; display:flex; flex-direction:column;
+      gap:8px; padding:8px 8px 0; overflow:hidden;
     }
 
-    .c-climb { color:var(--green); }
-    .c-desc  { color:var(--red);   }
-    .c-level { color:#666600;      }
-    .c-amber { color:var(--amber); }
-    .c-white { color:var(--white); }
-    .c-red   { color:var(--red);   }
+    /* Two main flight cards */
+    .fd-cards { display:grid; grid-template-columns:1fr 1fr; gap:8px; flex:1; min-height:0; }
 
-    /* Empty state */
-    #empty { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; }
-    .e-main { font-size:32px; color:var(--muted); letter-spacing:4px; }
-    .e-sub  { font-size:18px; color:#222100; letter-spacing:2px; }
+    /* Flight card */
+    .fd-card {
+      background:var(--card); border:1px solid var(--border); border-radius:10px;
+      overflow:hidden; display:flex; flex-direction:column;
+    }
+    .fd-stripe { height:3px; flex-shrink:0; }
+
+    /* Card header: logo + airline + callsign + status */
+    .fd-chead {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:8px 12px; border-bottom:1px solid var(--border); flex-shrink:0;
+    }
+    .fd-logo-row { display:flex; align-items:center; gap:8px; }
+    .fd-logo-img { width:34px; height:34px; border-radius:5px; object-fit:contain; background:#0a1828; padding:2px; flex-shrink:0; }
+    .fd-logo-badge { width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:600; color:white; flex-shrink:0; }
+    .fd-ainfo { display:flex; flex-direction:column; gap:1px; }
+    .fd-aname { font-size:clamp(12px,1.6vh,15px); font-weight:500; color:var(--text); }
+    .fd-csreg { font-size:clamp(10px,1.2vh,12px); color:var(--dim); }
+    .fd-badge { font-size:10px; padding:2px 8px; border-radius:4px; font-weight:500; }
+    .b-appr { background:#0a2a0a; color:var(--green); border:1px solid #1a5a1a; }
+    .b-dept { background:#1a1800; color:#cccc00; border:1px solid #3a3800; }
+    .b-enrt { background:#0a0a22; color:var(--blue); border:1px solid #1a2060; }
+    .b-low  { background:#111820; color:var(--mid); border:1px solid #1a2840; }
+
+    /* Route row */
+    .fd-route {
+      display:flex; align-items:center; padding:8px 12px;
+      border-bottom:1px solid var(--border); flex-shrink:0;
+    }
+    .fd-apt { text-align:center; min-width:50px; }
+    .fd-iata { font-size:clamp(20px,3vh,28px); font-weight:600; color:var(--text); line-height:1; }
+    .fd-iata.dim { color:var(--dim); font-size:clamp(16px,2.5vh,22px); }
+    .fd-apt-lbl { font-size:9px; color:var(--dim); letter-spacing:.06em; margin-top:2px; }
+    .fd-route-mid { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; padding:0 8px; }
+    .fd-type-pill { background:#0d1e32; border:1px solid #1a3050; border-radius:5px; padding:3px 10px; }
+    .fd-type-code { font-size:clamp(13px,1.8vh,16px); font-weight:500; color:#80aad0; }
+    .fd-type-name { font-size:9px; color:var(--dim); margin-top:1px; }
+    .fd-arrow-row { display:flex; align-items:center; width:100%; gap:4px; }
+    .fd-line  { flex:1; height:1px; background:#1a2840; }
+    .fd-arr   { font-size:9px; color:#2a3a50; }
+
+    /* Stats grid */
+    .fd-stats { display:grid; border-bottom:1px solid var(--border); flex-shrink:0; }
+    .fd-stats.cols3 { grid-template-columns:1fr 1fr 1fr; }
+    .fd-stat { padding:8px 0; text-align:center; border-right:1px solid var(--border); }
+    .fd-stat:last-child { border-right:none; }
+    .fd-sv { font-size:clamp(16px,2.8vh,26px); font-weight:600; color:var(--text); line-height:1; }
+    .fd-sk { font-size:9px; color:var(--dim); margin-top:3px; letter-spacing:.05em; }
+
+    /* Secondary stats */
+    .fd-stats2 { display:grid; grid-template-columns:1fr 1fr 1fr; flex-shrink:0; }
+    .fd-st2 { padding:6px 0; text-align:center; border-right:1px solid var(--border); }
+    .fd-st2:last-child { border-right:none; }
+    .fd-s2v { font-size:clamp(12px,2vh,17px); font-weight:500; line-height:1; }
+    .fd-s2k { font-size:9px; color:var(--dim); margin-top:2px; letter-spacing:.04em; }
+
+    .clr-g { color:var(--green); }
+    .clr-r { color:var(--red);   }
+    .clr-a { color:var(--amber); }
+    .clr-d { color:var(--dim);   }
+
+    /* Airborne time */
+    .fd-airborne { padding:5px 12px; border-bottom:1px solid var(--border); flex-shrink:0; display:flex; align-items:center; justify-content:space-between; }
+    .fd-air-val  { font-size:clamp(11px,1.6vh,14px); color:var(--mid); }
+    .fd-air-lbl  { font-size:9px; color:var(--dim); letter-spacing:.05em; }
+
+    /* Empty / error state */
+    #empty { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; }
+    .e-main { font-size:22px; font-weight:500; color:var(--dim); }
+    .e-sub  { font-size:14px; color:#2a3a50; }
+    #err-board { background:#1a0800; border:1px solid #3a1800; border-radius:8px; padding:10px 16px; }
+    .err-title  { font-size:14px; color:#cc5500; margin-bottom:4px; }
+    .err-detail { font-size:12px; color:#553300; }
+
+    /* Helicopter strip */
+    #heli-strip {
+      background:#090e18; border:1px solid var(--border);
+      border-radius:8px; margin:0 0 6px; flex-shrink:0;
+    }
+    .heli-head { font-size:9px; color:var(--dim); letter-spacing:.09em; padding:4px 12px 3px; border-bottom:1px solid var(--border); }
+    .heli-row  { display:flex; align-items:center; padding:5px 12px; gap:10px; border-bottom:1px solid var(--border); }
+    .heli-row:last-child { border-bottom:none; }
+    .heli-type { background:#1a0800; color:#cc5500; border:1px solid #3a1800; border-radius:3px; font-size:9px; padding:1px 5px; flex-shrink:0; }
+    .heli-cs   { font-size:14px; font-weight:500; color:var(--text); min-width:62px; }
+    .heli-info { font-size:12px; color:var(--mid); flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .heli-data { display:flex; gap:14px; flex-shrink:0; }
+    .heli-v    { font-size:13px; font-weight:500; color:var(--text); text-align:right; }
+    .heli-k    { font-size:9px; color:var(--dim); text-align:right; }
 
     /* Footer */
-    #footer {
-      display:flex; align-items:center; justify-content:space-between;
-      padding:0 14px; height:30px;
-      border-top:1px solid var(--rule); flex-shrink:0;
-      font-size:clamp(10px,1.4vh,15px); color:#252100;
-    }
-    #footer a { color:#252100; text-decoration:none; }
+    #ftr { display:flex; justify-content:space-between; align-items:center; padding:3px 12px 4px; flex-shrink:0; }
+    .ftr-src { font-size:10px; color:var(--dim); }
+    .ftr-upd { font-size:10px; color:var(--dim); font-variant-numeric:tabular-nums; }
 
-    /* =====================================================
-       SETTINGS PANEL (overlay, shown during live mode)
-    ===================================================== */
-    #settings {
-      position:fixed; inset:0; z-index:150;
-      background:rgba(0,0,0,0.92);
-      display:flex; align-items:center; justify-content:center;
-    }
-    #settings.hidden { display:none; }
-
-    .sp {
-      background:#0a0900; border:1px solid #2a2800;
-      border-radius:8px; padding:24px;
-      width:360px; max-width:90vw;
-    }
-    .sp-title { font-size:22px; color:var(--amber); margin-bottom:6px; letter-spacing:2px; }
-    .sp-cur   { font-size:14px; color:#444400; margin-bottom:20px; letter-spacing:1px; }
-
-    .sp-row { margin-bottom:14px; }
-    .sp-lbl { font-size:13px; color:#666600; display:block; margin-bottom:3px; letter-spacing:1px; }
-    .sp-inp {
-      width:100%; background:#0f0e00; border:1px solid #2a2800;
-      color:var(--amber); font-family:'VT323',monospace; font-size:18px;
-      padding:5px 10px; border-radius:4px; outline:none;
-    }
-    .sp-note { font-size:11px; color:#333200; margin-top:4px; }
-
-    .sp-section {
-      border-top:1px solid #1a1800; padding-top:14px; margin-top:14px;
-    }
-    .sp-section-title { font-size:14px; color:var(--dim); letter-spacing:2px; margin-bottom:10px; }
-
-    .sp-btn {
-      font-family:'VT323',monospace; font-size:18px;
-      background:#1a1800; border:1px solid #3a3600; color:var(--amber);
-      padding:7px 16px; border-radius:4px; cursor:pointer;
-      margin-right:8px; margin-top:6px; letter-spacing:1px;
-    }
-    .sp-btn:hover { background:#252300; }
-    .sp-btn.primary { background:var(--amber); color:#020202; border-color:var(--amber); }
-    .sp-btn.primary:hover { background:#ffc733; }
-    .sp-btn.danger  { color:#884444; border-color:#441111; }
-    .sp-btn.danger:hover { color:var(--red); border-color:#662222; background:#120000; }
-    .sp-btn.ghost { color:var(--dim); border-color:transparent; background:none; }
-    .sp-btn.ghost:hover { color:var(--amber); }
-
-    .sp-locate-status { font-size:14px; color:var(--dim); margin-top:8px; min-height:18px; letter-spacing:1px; }
-
-    /* Settings trigger — bottom corner of screen during live mode */
+    /* Settings panel */
     #cfg-btn {
-      position:fixed; bottom:36px; right:14px; z-index:50;
-      background:var(--bg); border:1px solid #2a2800;
-      color:#333200; font-family:'VT323',monospace;
-      font-size:14px; padding:4px 10px; border-radius:4px;
-      cursor:pointer; opacity:0.35; transition:opacity 0.2s;
+      position:fixed; bottom:40px; right:14px; z-index:50;
+      background:var(--bg); border:1px solid var(--border);
+      color:var(--dim); font-family:'Inter',sans-serif;
+      font-size:13px; padding:4px 10px; border-radius:6px;
+      cursor:pointer; opacity:.3; transition:opacity .2s;
     }
     #cfg-btn:hover { opacity:1; }
     #cfg-btn.hidden { display:none; }
+
+    #cfg-panel {
+      position:fixed; inset:0; z-index:100;
+      background:rgba(0,0,0,.88);
+      display:flex; align-items:center; justify-content:center;
+    }
+    #cfg-panel.hidden { display:none; }
+    .sp { background:#0c1625; border:1px solid var(--border); border-radius:10px; padding:22px; width:380px; max-width:92vw; }
+    .sp-title { font-size:16px; font-weight:600; color:var(--text); margin-bottom:5px; }
+    .sp-cur   { font-size:12px; color:var(--dim); margin-bottom:18px; }
+    .sp-sec   { border-top:1px solid var(--border); padding-top:14px; margin-top:14px; }
+    .sp-sec-t { font-size:11px; color:var(--dim); letter-spacing:.07em; margin-bottom:8px; }
+    .sp-row   { margin-bottom:12px; }
+    .sp-lbl   { font-size:12px; color:var(--mid); display:block; margin-bottom:3px; }
+    .sp-inp   { width:100%; background:#0d1828; border:1px solid var(--border); color:var(--text); font-family:'Inter',sans-serif; font-size:15px; padding:6px 10px; border-radius:6px; outline:none; }
+    .sp-inp:focus { border-color:#2a4a6a; }
+    .sp-note  { font-size:11px; color:var(--dim); margin-top:4px; }
+    .sp-grid  { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
+    .sp-btn   { font-family:'Inter',sans-serif; font-size:14px; background:#131e2e; border:1px solid var(--border); color:var(--mid); padding:7px 16px; border-radius:6px; cursor:pointer; margin-right:6px; margin-top:8px; }
+    .sp-btn:hover { background:#1a2a3e; color:var(--text); }
+    .sp-btn.prim  { background:#1a4a8a; border-color:#2a6ab0; color:#90c0f0; }
+    .sp-btn.prim:hover { background:#1e5a9a; }
+    .sp-btn.dngr  { color:#884444; }
+    .sp-btn.dngr:hover { color:var(--red); background:#1a0808; }
+    .sp-btn.ghost { border-color:transparent; background:none; }
+    .sp-loc-st { font-size:12px; color:var(--dim); margin-top:8px; min-height:16px; }
   </style>
 </head>
 <body>
 
-<!-- ========================================================
-     WELCOME SCREEN — no coordinates stored in source code.
-     Location is requested from the browser and stored only
-     in localStorage on this device.
-======================================================== -->
+<!-- ======================================================
+     WELCOME SCREEN
+====================================================== -->
 <div id="welcome">
-  <div class="w-logo">FLIGHTDECK</div>
-  <div class="w-sub">LIVE ADS-B AIRCRAFT TRACKER</div>
-  <div class="w-desc">
-    Displays aircraft near you using live ADS-B data.<br>
-    Works anywhere — home, airport, hotel, anywhere.
-  </div>
-
-  <button id="btn-locate" onclick="onLocateClick()">
-    LOCATE ME  ▶
-  </button>
-
+  <div class="w-logo">FlightDeck</div>
+  <div class="w-sub">Live ADS-B aircraft tracker</div>
+  <div class="w-desc">Shows aircraft near your current location. Works anywhere — home, airport, hotel.</div>
+  <button id="btn-locate" onclick="onLocate()">Locate me</button>
   <div class="w-or">— or —</div>
-
-  <button id="btn-manual" onclick="toggleManual()">
-    enter coordinates manually
-  </button>
-
+  <button id="btn-manual" onclick="toggleManual()">enter coordinates manually</button>
   <div id="manual-form">
-    <div class="mf-row">
-      <span class="mf-lbl">LATITUDE</span>
-      <input class="mf-inp" id="m-lat" type="number" step="0.0001" placeholder="e.g. 51.4694">
-    </div>
-    <div class="mf-row">
-      <span class="mf-lbl">LONGITUDE</span>
-      <input class="mf-inp" id="m-lon" type="number" step="0.0001" placeholder="e.g. -0.2405">
-    </div>
-    <div class="mf-row">
-      <span class="mf-lbl">LABEL (optional)</span>
-      <input class="mf-inp" id="m-label" type="text" placeholder="e.g. Home">
-    </div>
-    <button id="btn-manual-go" onclick="onManualSubmit()">USE THESE COORDINATES ▶</button>
+    <div><div class="mf-lbl">LATITUDE</div><input class="mf-inp" id="m-lat" type="number" step="0.0001" placeholder="51.4694"></div>
+    <div><div class="mf-lbl">LONGITUDE</div><input class="mf-inp" id="m-lon" type="number" step="0.0001" placeholder="-0.2405"></div>
+    <div><div class="mf-lbl">LABEL (optional)</div><input class="mf-inp" id="m-label" type="text" placeholder="Home"></div>
+    <button id="btn-manual-go" onclick="onManualSubmit()">Use these coordinates →</button>
   </div>
-
-  <div class="w-status w-blink" id="w-status" style="display:none;"></div>
+  <div class="w-status blink" id="w-status" style="display:none;"></div>
   <div class="w-error" id="w-error"></div>
 </div>
 
 
-<!-- ========================================================
-     MAIN APP — hidden until location is confirmed
-======================================================== -->
+<!-- ======================================================
+     MAIN APP
+====================================================== -->
 <div id="app" class="hidden">
-  <div id="header">
-    <span class="h-loc" id="h-loc" onclick="openSettings()" title="Tap to change location">⊙ --</span>
-    <div class="h-mid">
-      <div class="dot ok" id="live-dot"></div>
-      <span class="h-live" id="h-live">LIVE</span>
-      <span class="h-count" id="h-count"></span>
+  <div id="hdr">
+    <span class="hdr-loc" id="hdr-loc" onclick="openCfg()" title="Tap to change location">⊙ --</span>
+    <div class="hdr-mid">
+      <div class="live-dot ok" id="live-dot"></div>
+      <span class="hdr-status" id="hdr-status">LIVE</span>
+      <span class="hdr-stale-time" id="stale-time" style="display:none;"></span>
+      <span id="hdr-count" style="font-size:11px; color:var(--dim);"></span>
     </div>
-    <span class="h-clock" id="h-clock">--:--:-- UTC</span>
+    <span class="hdr-clk" id="hdr-clk">--:--:-- UTC</span>
   </div>
 
-  <div id="board"></div>
+  <div id="board">
+    <div class="fd-cards" id="cards"></div>
+    <div id="heli-strip" style="display:none;">
+      <div class="heli-head">ROTARY WING IN RANGE</div>
+      <div id="heli-rows"></div>
+    </div>
+  </div>
 
-  <div id="footer">
-    <span id="f-src">ADS-B data loading…</span>
-    <span id="f-upd">--</span>
+  <div id="ftr">
+    <span class="ftr-src" id="ftr-src">adsb.lol via worker</span>
+    <span class="ftr-upd" id="ftr-upd">--</span>
   </div>
 </div>
 
-<button id="cfg-btn" class="hidden" onclick="openSettings()">⚙ settings</button>
+<button id="cfg-btn" class="hidden" onclick="openCfg()">⚙ settings</button>
 
-
-
-<!-- ========================================================
-     SETTINGS PANEL (overlay during live mode)
-======================================================== -->
-<div id="settings" class="hidden">
+<!-- Settings panel -->
+<div id="cfg-panel" class="hidden">
   <div class="sp">
-    <div class="sp-title">⚙ SETTINGS</div>
-    <div class="sp-cur" id="sp-cur-loc">Current: --</div>
+    <div class="sp-title">Settings</div>
+    <div class="sp-cur" id="sp-cur">Current: --</div>
 
-    <!-- Update location -->
-    <div class="sp-section">
-      <div class="sp-section-title">LOCATION</div>
-      <button class="sp-btn primary" onclick="spGeolocate()">USE MY CURRENT LOCATION</button>
-      <div class="sp-locate-status" id="sp-loc-status"></div>
-      <div style="margin-top:14px;">
-        <div class="sp-row">
-          <label class="sp-lbl">Or enter manually</label>
+    <div class="sp-sec">
+      <div class="sp-sec-t">LOCATION</div>
+      <button class="sp-btn prim" onclick="spGeolocate()">Use my current location</button>
+      <div class="sp-loc-st" id="sp-loc-st"></div>
+      <div style="margin-top:12px;">
+        <div class="sp-grid" style="margin-bottom:8px;">
+          <div><label class="sp-lbl">Latitude</label><input class="sp-inp" id="sp-lat" type="number" step="0.0001"></div>
+          <div><label class="sp-lbl">Longitude</label><input class="sp-inp" id="sp-lon" type="number" step="0.0001"></div>
+          <div><label class="sp-lbl">Label</label><input class="sp-inp" id="sp-label" type="text"></div>
         </div>
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
-          <div>
-            <label class="sp-lbl">LATITUDE</label>
-            <input class="sp-inp" id="sp-lat" type="number" step="0.0001">
-          </div>
-          <div>
-            <label class="sp-lbl">LONGITUDE</label>
-            <input class="sp-inp" id="sp-lon" type="number" step="0.0001">
-          </div>
-        </div>
-        <div class="sp-row">
-          <label class="sp-lbl">LABEL</label>
-          <input class="sp-inp" id="sp-label" type="text">
-        </div>
-        <button class="sp-btn" onclick="spManualSave()">SAVE LOCATION</button>
+        <button class="sp-btn" onclick="spManualSave()">Save location</button>
       </div>
     </div>
 
-    <!-- Display settings -->
-    <div class="sp-section">
-      <div class="sp-section-title">DISPLAY</div>
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
-        <div>
-          <label class="sp-lbl">RADIUS (nm)</label>
-          <input class="sp-inp" id="sp-dist" type="number" step="5" min="5" max="100">
-          <p class="sp-note">22nm ≈ 40km</p>
-        </div>
-        <div>
-          <label class="sp-lbl">MAX ROWS</label>
-          <input class="sp-inp" id="sp-rows" type="number" step="1" min="4" max="12">
-        </div>      </div>
-      <button class="sp-btn" onclick="spSaveDisplay()" style="margin-top:10px;">SAVE</button>
+    <div class="sp-sec">
+      <div class="sp-sec-t">DISPLAY</div>
+      <div class="sp-grid">
+        <div><label class="sp-lbl">Radius (nm)</label><input class="sp-inp" id="sp-dist" type="number" step="5" min="5" max="100"><div class="sp-note">22nm ≈ 40km</div></div>
+        <div><label class="sp-lbl">Refresh (sec)</label><input class="sp-inp" id="sp-rfsh" type="number" step="5" min="20" max="120"><div class="sp-note">30s recommended</div></div>
+        <div></div>
+      </div>
+      <button class="sp-btn" onclick="spSaveDisplay()" style="margin-top:10px;">Save</button>
     </div>
 
-    <!-- Cloudflare Worker -->
-    <div class="sp-section">
-      <div class="sp-section-title">CLOUDFLARE WORKER <span style="color:#222100;font-size:11px;">(optional — see worker.js)</span></div>
+    <div class="sp-sec">
+      <div class="sp-sec-t">CLOUDFLARE WORKER</div>
       <div class="sp-row">
         <label class="sp-lbl">Worker URL</label>
         <input class="sp-inp" id="sp-worker" type="url" placeholder="https://flightdeck.you.workers.dev">
-        <p class="sp-note">Improves reliability. Free setup — see the worker.js file in your GitHub repo for instructions. Leave blank to use public proxy (corsproxy.io).</p>
+        <div class="sp-note">Required. See worker.js for setup instructions.</div>
       </div>
-      <button class="sp-btn" onclick="spSaveWorker()">SAVE WORKER URL</button>
+      <button class="sp-btn" onclick="spSaveWorker()">Save worker URL</button>
     </div>
 
-    <!-- Danger zone -->
-    <div class="sp-section">
-      <button class="sp-btn danger" onclick="spForgetLocation()">FORGET LOCATION</button>
-      <p class="sp-note">Returns to the welcome screen. Clears stored coordinates from this device.</p>
+    <div class="sp-sec">
+      <button class="sp-btn dngr" onclick="spForget()">Forget location</button>
+      <div class="sp-note" style="margin-top:4px;">Clears saved coordinates from this device.</div>
     </div>
-
     <div style="margin-top:16px;">
-      <button class="sp-btn ghost" onclick="closeSettings()">CLOSE</button>
+      <button class="sp-btn ghost" onclick="closeCfg()">Close</button>
     </div>
   </div>
 </div>
@@ -462,467 +344,626 @@
 
 <script>
 // ============================================================
-//  FlightDeck — Privacy-first PWA
-//  No coordinates in source code. Location stored on-device only.
-//  Data: adsb.lol (free, no auth required, CORS enabled)
+//  FlightDeck v2 — Privacy-first PWA
+//  ADS-B: adsb.lol via Cloudflare Worker
+//  Route info: OpenSky Flights API via Worker /flight endpoint
 // ============================================================
 
-// ---- Persisted settings (localStorage only) ----
-const STORE = {
+// ---- Persistent store (localStorage) ----
+const S = {
   get lat()       { return parseFloat(localStorage.getItem('fd_lat')); },
   get lon()       { return parseFloat(localStorage.getItem('fd_lon')); },
   get label()     { return localStorage.getItem('fd_label') || ''; },
   get dist()      { return parseInt(localStorage.getItem('fd_dist')) || 22; },
-  get rows()      { return parseInt(localStorage.getItem('fd_rows')) || 8; },
   get refresh()   { return parseInt(localStorage.getItem('fd_rfms')) || 30000; },
   get workerUrl() { return localStorage.getItem('fd_worker') || ''; },
-  hasLocation() { return !isNaN(this.lat) && !isNaN(this.lon) && this.lat && this.lon; },
-  saveLoc(lat, lon, label) {
+  hasLoc()        { return !isNaN(this.lat) && !isNaN(this.lon) && this.lat && this.lon; },
+  saveLoc(lat,lon,label) {
     localStorage.setItem('fd_lat',   lat);
     localStorage.setItem('fd_lon',   lon);
-    localStorage.setItem('fd_label', label || coordLabel(lat, lon));
+    localStorage.setItem('fd_label', label || coordLabel(lat,lon));
   },
-  saveDisplay(dist, rows) {
-    localStorage.setItem('fd_dist', dist);
-    localStorage.setItem('fd_rows', rows);
+  saveDisplay(dist,rfsh) {
+    localStorage.setItem('fd_dist',  dist);
+    localStorage.setItem('fd_rfms',  rfsh);
   },
-  saveWorker(url) {
-    if (url) localStorage.setItem('fd_worker', url.trim());
-    else localStorage.removeItem('fd_worker');
-  },
-  forget() {
-    ['fd_lat','fd_lon','fd_label'].forEach(k => localStorage.removeItem(k));
-  },
+  saveWorker(url)  { url ? localStorage.setItem('fd_worker', url.trim()) : localStorage.removeItem('fd_worker'); },
+  forget()         { ['fd_lat','fd_lon','fd_label'].forEach(k => localStorage.removeItem(k)); },
 };
 
-// ---- Airline lookup ----
-const AL = {
-  BAW:'British Airways',  EZY:'easyJet',         RYR:'Ryanair',
-  UAE:'Emirates',         VIR:'Virgin Atlantic',  QTR:'Qatar Airways',
-  SIA:'Singapore Airlines', CPA:'Cathay Pacific', AAL:'American Airlines',
-  UAL:'United Airlines',  DAL:'Delta Air Lines',  AFR:'Air France',
-  DLH:'Lufthansa',        IBE:'Iberia',           KLM:'KLM',
-  THA:'Thai Airways',     TUI:'TUI Airways',      TCX:'TUI Airways',
-  NOS:'Norwegian',        WZZ:'Wizz Air',         FIN:'Finnair',
-  AUA:'Austrian Airlines', SWR:'SWISS',           TAP:'TAP Portugal',
-  AZA:'ITA Airways',      ELY:'El Al',            THY:'Turkish Airlines',
-  SVA:'Saudi Arabian Airlines', ETH:'Ethiopian Airlines', KAL:'Korean Air',
-  ANA:'All Nippon Airways', JAL:'Japan Airlines', CCA:'Air China',
-  CSN:'China Southern',   QFA:'Qantas',           ANZ:'Air New Zealand',
-  ETD:'Etihad Airways',   MSR:'EgyptAir',         RAM:'Royal Air Maroc',
-  GFA:'Gulf Air',         TRA:'Transavia',        VLG:'Vueling',
-  BEL:'Brussels Airlines', SAS:'Scandinavian',    PGT:'Pegasus Airlines',
-  BTI:'airBaltic',        EIN:'Aer Lingus',       LOG:'Loganair',
-  EXS:'Jet2',             GTI:'Atlas Air',        FDX:'FedEx Express',
-  UPS:'UPS Airlines',     CLX:'Cargolux',         DHL:'DHL Air',
-};
+// ---- Route info cache (keyed by callsign) ----
+const ROUTE_TTL = 4 * 3600 * 1000;   // 4 hours
+const routeCache = {};
 
-function airline(cs) {
-  const p = cs.replace(/[0-9\s].*$/, '').toUpperCase();
-  return AL[p] || null;
+function getCachedRoute(cs) {
+  const c = routeCache[cs];
+  if (!c) return null;
+  if (Date.now() - c.fetched > ROUTE_TTL) { delete routeCache[cs]; return null; }
+  return c;
+}
+function setCachedRoute(cs, data) {
+  routeCache[cs] = { ...data, fetched: Date.now() };
+}
+
+// ---- ICAO4 → IATA3 airport lookup ----
+const ICAO_IATA = {
+  EGLL:'LHR',EGKK:'LGW',EGSS:'STN',EGGW:'LTN',EGLC:'LCY',EGCC:'MAN',EGBB:'BHX',
+  EGGD:'BRS',EGPH:'EDI',EGPF:'GLA',EGNX:'EMA',EIDW:'DUB',EINN:'SNN',
+  KJFK:'JFK',KLAX:'LAX',KORD:'ORD',KDFW:'DFW',KATL:'ATL',KLGA:'LGA',KEWR:'EWR',
+  KBOS:'BOS',KMIA:'MIA',KIAD:'IAD',KDCA:'DCA',KSFO:'SFO',KSEA:'SEA',KDEN:'DEN',
+  KLAS:'LAS',KPHX:'PHX',KMCO:'MCO',KCLT:'CLT',KPHL:'PHL',KTPA:'TPA',
+  CYYZ:'YYZ',CYVR:'YVR',CYUL:'YUL',
+  EDDF:'FRA',EDDM:'MUC',EDDL:'DUS',EDDH:'HAM',EDDS:'STR',EDDB:'BER',
+  LFPG:'CDG',LFPO:'ORY',LFLL:'LYS',LFMN:'NCE',LFRN:'RNS',
+  EHAM:'AMS',EBBR:'BRU',ELLX:'LUX',EBLG:'LGG',
+  LEMD:'MAD',LEBL:'BCN',LEAL:'ALC',LEMG:'AGP',LEZL:'SVQ',LEVT:'VIT',
+  LIRF:'FCO',LIML:'LIN',LIME:'BGY',LIPZ:'VCE',LIRN:'NAP',LICC:'CTA',
+  LPPT:'LIS',LPPR:'OPO',
+  LKPR:'PRG',EPWA:'WAW',LHBP:'BUD',LROP:'OTP',LOWW:'VIE',LZIB:'BTS',
+  EFHK:'HEL',ESSA:'ARN',EKCH:'CPH',ENGM:'OSL',ENBR:'BGO',ESMS:'MMX',
+  OMDB:'DXB',OMSJ:'SHJ',OMAA:'AUH',OTHH:'DOH',OERK:'RUH',OJAI:'AMM',
+  LLBG:'TLV',LTFM:'IST',LTBA:'SAW',UBBB:'GYD',UGEE:'EVN',UGTB:'TBS',
+  VHHH:'HKG',WSSS:'SIN',RJTT:'HND',RJAA:'NRT',RKSI:'ICN',RCTP:'TPE',
+  ZBAA:'PEK',ZSPD:'PVG',ZGSZ:'SZX',ZGGG:'CAN',ZUUU:'CTU',ZUCK:'CKG',
+  VIDP:'DEL',VABB:'BOM',VOMM:'MAA',VECC:'CCU',
+  YSSY:'SYD',YMML:'MEL',YBBN:'BNE',YPER:'PER',NZAA:'AKL',
+  FAOR:'JNB',FACT:'CPT',HAAB:'ADD',DNMM:'LOS',HECA:'CAI',GMMN:'CMN',
+  MMMX:'MEX',MPTO:'PTY',SBGR:'GRU',SAEZ:'EZE',SCEL:'SCL',SKBO:'BOG',
+  UUEE:'SVO',UUDD:'DME',UUWW:'VKO',UKBB:'KBP',
+};
+function icaoToIata(icao) { return icao ? (ICAO_IATA[icao.toUpperCase()] || icao.substring(0,4)) : null; }
+
+// ---- Airline lookup (ICAO callsign prefix → display name + IATA) ----
+const AIRLINES = {
+  BAW:{n:'British Airways',   iata:'BA',  col:'#00539B'},
+  EZY:{n:'easyJet',          iata:'U2',  col:'#FF6600'},
+  RYR:{n:'Ryanair',          iata:'FR',  col:'#073590'},
+  UAE:{n:'Emirates',         iata:'EK',  col:'#C60C30'},
+  VIR:{n:'Virgin Atlantic',  iata:'VS',  col:'#EE0000'},
+  QTR:{n:'Qatar Airways',    iata:'QR',  col:'#5C0033'},
+  SIA:{n:'Singapore Airlines',iata:'SQ', col:'#00337F'},
+  CPA:{n:'Cathay Pacific',   iata:'CX',  col:'#006565'},
+  AAL:{n:'American Airlines',iata:'AA',  col:'#0078D2'},
+  UAL:{n:'United Airlines',  iata:'UA',  col:'#002244'},
+  DAL:{n:'Delta Air Lines',  iata:'DL',  col:'#003366'},
+  AFR:{n:'Air France',       iata:'AF',  col:'#002157'},
+  DLH:{n:'Lufthansa',        iata:'LH',  col:'#05164D'},
+  IBE:{n:'Iberia',           iata:'IB',  col:'#CC0000'},
+  KLM:{n:'KLM',              iata:'KL',  col:'#009DBB'},
+  THA:{n:'Thai Airways',     iata:'TG',  col:'#6B2D8B'},
+  TUI:{n:'TUI Airways',      iata:'BY',  col:'#CC0066'},
+  TCX:{n:'TUI Airways',      iata:'BY',  col:'#CC0066'},
+  NOS:{n:'Norwegian',        iata:'DY',  col:'#D30000'},
+  WZZ:{n:'Wizz Air',         iata:'W6',  col:'#C6007E'},
+  FIN:{n:'Finnair',          iata:'AY',  col:'#003580'},
+  AUA:{n:'Austrian',         iata:'OS',  col:'#CC0000'},
+  SWR:{n:'SWISS',            iata:'LX',  col:'#CC0000'},
+  TAP:{n:'TAP Portugal',     iata:'TP',  col:'#006400'},
+  THY:{n:'Turkish Airlines', iata:'TK',  col:'#C8102E'},
+  ETD:{n:'Etihad',           iata:'EY',  col:'#BF9B0C'},
+  SHT:{n:'British Airways',  iata:'BA',  col:'#00539B'},
+  EIN:{n:'Aer Lingus',       iata:'EI',  col:'#006600'},
+  LOG:{n:'Loganair',         iata:'LM',  col:'#003580'},
+  EXS:{n:'Jet2',             iata:'LS',  col:'#FF6600'},
+  OMA:{n:'Oman Air',         iata:'WY',  col:'#CC0000'},
+  SVA:{n:'Saudia',           iata:'SV',  col:'#006600'},
+  CSN:{n:'China Southern',   iata:'CZ',  col:'#0033A0'},
+  CCA:{n:'Air China',        iata:'CA',  col:'#CC0000'},
+  KAL:{n:'Korean Air',       iata:'KE',  col:'#00205B'},
+  ANA:{n:'All Nippon Airways',iata:'NH', col:'#003087'},
+  JAL:{n:'Japan Airlines',   iata:'JL',  col:'#CC0000'},
+  QFA:{n:'Qantas',           iata:'QF',  col:'#E40000'},
+  ETH:{n:'Ethiopian Airlines',iata:'ET', col:'#009A00'},
+  RYN:{n:'Ryanair',          iata:'FR',  col:'#073590'},
+  AIC:{n:'Air India',        iata:'AI',  col:'#D62828'},
+  GTI:{n:'Atlas Air',        iata:'5Y',  col:'#003580'},
+  FDX:{n:'FedEx',            iata:'FX',  col:'#4D148C'},
+  UPS:{n:'UPS Airlines',     iata:'5X',  col:'#351C15'},
+  WUK:{n:'Wizz Air UK',      iata:'W9',  col:'#C6007E'},
+  AUA:{n:'Austrian Airlines',iata:'OS',  col:'#CC0000'},
+  NOZ:{n:'Norwegian',        iata:'DY',  col:'#D30000'},
+  IGO:{n:'IndiGo',           iata:'6E',  col:'#1A237E'},
+  EJU:{n:'easyJet Europe',   iata:'U2',  col:'#FF6600'},
+  BCS:{n:'European Air Transport',iata:'QY',col:'#003580'},
+};
+function getAirline(cs) {
+  const p = cs.replace(/[0-9\s].*$/,'').toUpperCase();
+  return AIRLINES[p] || { n: p, iata: null, col: '#1a3a5a' };
 }
 
 // ---- Helpers ----
-function coordLabel(lat, lon) {
+function coordLabel(lat,lon) {
   return `${Math.abs(lat).toFixed(2)}°${lat>=0?'N':'S'} ${Math.abs(lon).toFixed(2)}°${lon>=0?'E':'W'}`;
 }
 
-function distKm(lat1, lon1, lat2, lon2) {
-  const R=6371, d=Math.PI/180;
-  const dLat=(lat2-lat1)*d, dLon=(lon2-lon1)*d;
-  const a=Math.sin(dLat/2)**2 + Math.cos(lat1*d)*Math.cos(lat2*d)*Math.sin(dLon/2)**2;
-  return R*2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+function fmtAirborne(firstSeen) {
+  if (!firstSeen) return null;
+  const mins = Math.floor((Date.now()/1000 - firstSeen) / 60);
+  if (mins < 0) return null;
+  if (mins < 60) return `${mins}m airborne`;
+  return `${Math.floor(mins/60)}h ${mins%60}m airborne`;
 }
 
-// ---- Reverse geocode (OpenStreetMap Nominatim — free, no key) ----
-async function reverseGeocode(lat, lon) {
-  try {
-    const r = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&zoom=10`,
-      { headers: { 'Accept-Language': 'en' } }
-    );
-    const d = await r.json();
-    const a = d.address || {};
-    const place = a.suburb || a.quarter || a.town || a.village || a.city_district || a.city || '';
-    const post  = (a.postcode || '').split('-')[0].split(' ')[0];
-    if (place) return post ? `${place.toUpperCase()} ${post}` : place.toUpperCase();
-  } catch(e) {}
-  return coordLabel(lat, lon);
+function fmtVr(fpm) {
+  if (Math.abs(fpm) < 100) return 'level';
+  return (fpm > 0 ? '+' : '') + fpm.toLocaleString() + ' fpm';
 }
 
-// ---- Geolocation ----
+function classify(hdg,alt,vr,navModes) {
+  const onAppr = (navModes||[]).includes('approach');
+  if (onAppr || (hdg>235&&hdg<305&&alt<8500&&alt>100&&vr<-150)) return 'appr';
+  if (alt<7000&&vr>400) return 'dept';
+  if (alt>18000) return 'enrt';
+  return 'low';
+}
+
+function distKm(lat1,lon1,lat2,lon2) {
+  const R=6371,d=Math.PI/180;
+  const dLat=(lat2-lat1)*d,dLon=(lon2-lon1)*d;
+  const a=Math.sin(dLat/2)**2+Math.cos(lat1*d)*Math.cos(lat2*d)*Math.sin(dLon/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+
+// ---- Geolocation + reverse geocode ----
 function geolocate() {
-  return new Promise((resolve, reject) => {
-    if (!navigator.geolocation) { reject(new Error('Geolocation not supported')); return; }
+  return new Promise((res,rej) => {
+    if (!navigator.geolocation) { rej(new Error('Geolocation not supported')); return; }
     navigator.geolocation.getCurrentPosition(
-      p => resolve({ lat: p.coords.latitude, lon: p.coords.longitude }),
-      e => reject(e),
-      { enableHighAccuracy: true, timeout: 20000, maximumAge: 60000 }
+      p => res({lat:p.coords.latitude, lon:p.coords.longitude}),
+      e => rej(e),
+      {enableHighAccuracy:true,timeout:20000,maximumAge:60000}
     );
   });
 }
-
 function geoErrMsg(e) {
   if (!e) return 'Unknown error';
-  if (e.code === 1) return 'Location permission denied. Please allow location access and try again.';
-  if (e.code === 2) return 'Location unavailable. Try again or enter coordinates manually.';
-  if (e.code === 3) return 'Location request timed out. Check your connection.';
+  if (e.code===1) return 'Location permission denied. Please allow location access.';
+  if (e.code===2) return 'Location unavailable. Try again or enter manually.';
+  if (e.code===3) return 'Location request timed out.';
   return e.message || 'Could not get location.';
 }
+async function reverseGeocode(lat,lon) {
+  try {
+    const r = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&zoom=10`,{headers:{'Accept-Language':'en'}});
+    const d = await r.json();
+    const a = d.address||{};
+    const place = a.suburb||a.quarter||a.town||a.village||a.city_district||a.city||'';
+    const post  = (a.postcode||'').split('-')[0].split(' ')[0];
+    if (place) return post ? `${place.toUpperCase()} ${post}` : place.toUpperCase();
+  } catch(e) {}
+  return coordLabel(lat,lon);
+}
 
-// ---- Welcome screen handlers ----
+// ---- Welcome screen ----
 let manualShown = false;
-
 function toggleManual() {
   manualShown = !manualShown;
   document.getElementById('manual-form').classList.toggle('show', manualShown);
-  document.getElementById('btn-manual').textContent =
-    manualShown ? '▲ hide manual entry' : 'enter coordinates manually';
+  document.getElementById('btn-manual').textContent = manualShown ? '▲ hide' : 'enter coordinates manually';
 }
-
-async function onLocateClick() {
+async function onLocate() {
   const btn = document.getElementById('btn-locate');
-  const status = document.getElementById('w-status');
-  const errEl  = document.getElementById('w-error');
-  btn.disabled = true;
-  btn.textContent = 'LOCATING…';
-  errEl.textContent = '';
-  status.textContent = 'REQUESTING LOCATION_';
-  status.style.display = 'block';
-
+  const st  = document.getElementById('w-status');
+  const err = document.getElementById('w-error');
+  btn.disabled = true; btn.textContent = 'Locating…';
+  err.textContent = ''; st.textContent = 'Requesting location…'; st.style.display='block';
   try {
     const pos = await geolocate();
-    status.textContent = 'LOCATING PLACE NAME_';
+    st.textContent = 'Getting place name…';
     const label = await reverseGeocode(pos.lat, pos.lon);
-    STORE.saveLoc(pos.lat, pos.lon, label);
+    S.saveLoc(pos.lat, pos.lon, label);
     goLive();
   } catch(e) {
-    btn.disabled = false;
-    btn.textContent = 'LOCATE ME  ▶';
-    status.style.display = 'none';
-    errEl.textContent = geoErrMsg(e);
+    btn.disabled=false; btn.textContent='Locate me';
+    st.style.display='none'; err.textContent=geoErrMsg(e);
   }
 }
-
 function onManualSubmit() {
   const lat   = parseFloat(document.getElementById('m-lat').value);
   const lon   = parseFloat(document.getElementById('m-lon').value);
   const label = document.getElementById('m-label').value.trim().toUpperCase();
   const err   = document.getElementById('w-error');
-  if (isNaN(lat) || isNaN(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
-    err.textContent = 'Please enter valid latitude and longitude.';
-    return;
+  if (isNaN(lat)||isNaN(lon)||lat<-90||lat>90||lon<-180||lon>180) {
+    err.textContent='Please enter valid latitude and longitude.'; return;
   }
-  err.textContent = '';
-  STORE.saveLoc(lat, lon, label || coordLabel(lat, lon));
+  err.textContent='';
+  S.saveLoc(lat, lon, label||coordLabel(lat,lon));
   goLive();
 }
 
-// ---- Transition to live mode ----
+// ---- Go live ----
 function goLive() {
   document.getElementById('welcome').classList.add('hidden');
   document.getElementById('app').classList.remove('hidden');
   document.getElementById('cfg-btn').classList.remove('hidden');
-  updateHeaderLocation();
+  document.getElementById('hdr-loc').textContent =
+    `⊙ ${S.label||coordLabel(S.lat,S.lon)}`;
   startApp();
 }
 
-function updateHeaderLocation() {
-  const label = STORE.label || coordLabel(STORE.lat, STORE.lon);
-  document.getElementById('h-loc').textContent = `⊙ ${label}`;
-}
-
-// ---- ADS-B fetch — via Cloudflare Worker only ----
-//  The Worker (worker.js) handles source-switching and CORS.
-//  The app just calls it with lat/lon/dist parameters.
-
-let activeSource = 'connecting…';
-
-function classify(hdg, alt, vr) {
-  if (hdg>235 && hdg<305 && alt<8500 && alt>100 && vr<-150) return 'appr';
-  if (alt<7000 && vr>400) return 'dept';
-  if (alt>18000) return 'enrt';
-  return 'low';
-}
-
-function parseAircraft(ac) {
-  return ac
-    .filter(a => {
-      if (a.alt_baro === 'ground' || a.on_ground) return false;
-      return typeof a.alt_baro === 'number' && a.alt_baro > 100 && a.lat && a.lon && a.flight?.trim();
-    })
-    .map(a => {
-      const cs  = a.flight.trim().toUpperCase();
-      const alt = Math.round(a.alt_baro);
-      const spd = typeof a.gs        === 'number' ? Math.round(a.gs)        : null;
-      const vr  = typeof a.baro_rate === 'number' ? Math.round(a.baro_rate) : 0;
-      const hdg = Math.round(a.track || 0);
-      const d   = Math.round(distKm(STORE.lat, STORE.lon, a.lat, a.lon));
-      return {
-        cs, alt, spd, vr, hdg, distKm: d,
-        cls:  classify(hdg, alt, vr),
-        disp: airline(cs) || a.r || a.t || cs.slice(0,3),
-        type: a.t || '',
-      };
-    })
-    .sort((a,b) => {
-      const o={appr:0,dept:1,low:2,enrt:3};
-      const oa=o[a.cls]??4, ob=o[b.cls]??4;
-      return oa!==ob ? oa-ob : a.distKm-b.distKm;
-    })
-    .slice(0, STORE.rows);
-}
-
+// ---- Fetch ADS-B data ----
 async function fetchFlights() {
-  const w = STORE.workerUrl;
-  if (!w) throw new Error('No Worker URL set — open ⚙ settings and enter your Cloudflare Worker URL');
-
-  const url = `${w.replace(/\/+$/,'')}?lat=${STORE.lat}&lon=${STORE.lon}&dist=${STORE.dist}`;
-  const res = await fetch(url, { cache: 'no-store' });
-
-  let data;
-  try { data = await res.json(); } catch(e) { throw new Error(`Bad response from Worker (${res.status})`); }
-
-  if (!res.ok) {
-    const detail = data.detail?.slice(0,2).join(' · ') || data.error || `HTTP ${res.status}`;
-    throw new Error(`Worker: ${detail}`);
-  }
-
-  const ac = data.ac || data.aircraft || [];
-  activeSource = `${data._source || 'ADS-B'} via Worker`;
-  return parseAircraft(ac);
+  const w = S.workerUrl;
+  if (!w) throw new Error('No Worker URL — open settings');
+  const url = `${w.replace(/\/+$/,'')}?lat=${S.lat}&lon=${S.lon}&dist=${S.dist}`;
+  const res  = await fetch(url, {cache:'no-store'});
+  let data; try { data=await res.json(); } catch(e) { throw new Error(`Bad response (${res.status})`); }
+  if (!res.ok) throw new Error(`Worker: ${data.error||res.status}`);
+  const ac = data.ac||[];
+  return ac.filter(a => {
+    if (a.alt_baro==='ground'||a.on_ground) return false;
+    return typeof a.alt_baro==='number' && a.alt_baro>100 && a.lat && a.lon && a.flight?.trim();
+  }).map(a => {
+    const cs  = a.flight.trim().toUpperCase();
+    const alt = Math.round(a.alt_baro);
+    const vr  = typeof a.baro_rate==='number' ? Math.round(a.baro_rate) : 0;
+    const hdg = Math.round(a.track||0);
+    return {
+      cs, alt, vr, hdg,
+      spd:      typeof a.gs==='number' ? Math.round(a.gs) : null,
+      dist:     typeof a.dst==='number' ? Math.round(a.dst*10)/10 : Math.round(distKm(S.lat,S.lon,a.lat,a.lon)*10)/10,
+      dir:      typeof a.dir==='number' ? Math.round(a.dir) : null,
+      hex:      a.hex,
+      reg:      a.r||'',
+      typeCode: a.t||'',
+      category: a.category||'',
+      navModes: a.nav_modes||[],
+      cls:      classify(hdg, alt, vr, a.nav_modes),
+      airline:  getAirline(cs),
+      squawk:   a.squawk||'',
+    };
+  }).sort((a,b) => {
+    const o={appr:0,dept:1,low:2,enrt:3};
+    return (o[a.cls]??4)-(o[b.cls]??4)||a.dist-b.dist;
+  });
 }
 
-
+// ---- Fetch route info via Worker /flight endpoint (cached) ----
+async function fetchRouteInfo(hex, cs) {
+  if (getCachedRoute(cs)) return getCachedRoute(cs);
+  const w = S.workerUrl;
+  if (!w) return null;
+  try {
+    const url = `${w.replace(/\/+$/,'')}/flight?hex=${hex}&cs=${encodeURIComponent(cs)}`;
+    const res  = await fetch(url, {cache:'no-store'});
+    if (!res.ok) return null;
+    const d = await res.json();
+    if (!d.found) { setCachedRoute(cs,{found:false}); return null; }
+    const info = {
+      found:     true,
+      departure: icaoToIata(d.departure),
+      arrival:   icaoToIata(d.arrival),
+      firstSeen: d.firstSeen,
+    };
+    setCachedRoute(cs, info);
+    return info;
+  } catch(e) { return null; }
+}
 
 // ---- Render ----
-const vrCls   = v => v>200  ? 'c-climb' : v<-200 ? 'c-desc' : 'c-level';
-const vrArrow = v => v>200  ? '▲' : v<-200 ? '▼' : '▬';
-const altCls  = f => f<2500 ? 'c-red' : f>25000 ? 'c-white' : 'c-amber';
-const fmtAlt  = f => f.toLocaleString() + 'ft';
-const fmtSpd  = k => k != null ? k + 'kt' : '---';
-const fmtVr   = v => Math.abs(v)<100 ? 'level' : (v>0?'+':'') + v.toLocaleString() + 'fpm';
-const BADGES  = {
-  appr: '<span class="f-badge b-appr">ILS APPR</span>',
-  dept: '<span class="f-badge b-dept">DEPARTING</span>',
-  enrt: '<span class="f-badge b-enrt">EN ROUTE</span>',
-  low:  '',
-};
-
-function showError(msg) {
-  const board = document.getElementById('board');
-  board.innerHTML = `<div id="empty">
-    <div class="e-main" style="color:#883300;font-size:24px;">DATA ERROR</div>
-    <div class="e-sub" style="color:#553300;max-width:480px;text-align:center;line-height:1.5;">${msg}</div>
-    <div class="e-sub" style="color:#333200;margin-top:12px;">Will retry in ${STORE.refresh/1000}s &nbsp;·&nbsp; Check browser console for details</div>
-  </div>`;
+function dirLabel(deg) {
+  if (deg===null||deg===undefined) return '';
+  const dirs=['N','NE','E','SE','S','SW','W','NW'];
+  return dirs[Math.round(deg/45)%8];
 }
 
-function renderFlights(flights) {
-  const board = document.getElementById('board');
-  if (!flights.length) {
-    board.innerHTML = `<div id="empty">
-      <div class="e-main">NO AIRCRAFT IN RANGE</div>
-      <div class="e-sub">r=${STORE.dist}nm · refreshing every ${STORE.refresh/1000}s</div>
-    </div>`;
-    return;
-  }
-  board.innerHTML = flights.map(f => {
-    const vc  = vrCls(f.vr);
-    const tBadge = f.type ? `<span class="f-badge b-type">${f.type}</span>` : '';
-    return `<div class="row">
-      <span class="f-cs">${f.cs}</span>
-      <span class="f-name">${f.disp}${BADGES[f.cls]||''}${tBadge}</span>
-      <div class="f-metrics">
-        <div class="f-m">
-          <span class="f-lbl">ALT</span>
-          <span class="f-val ${altCls(f.alt)}">${fmtAlt(f.alt)}</span>
+function cardBadgeHtml(cls) {
+  const map = {appr:'ILS APPR b-appr',dept:'DEPARTING b-dept',enrt:'EN ROUTE b-enrt',low:'b-low'};
+  const s = (map[cls]||'b-low').split(' ');
+  const txt = s[0]==='b-low' ? 'LOW ALT' : s[0];
+  return `<span class="fd-badge ${s[s.length-1]}">${txt}</span>`;
+}
+
+function logoHtml(airline) {
+  const fallback = `<div class="fd-logo-badge" style="background:${airline.col};">${airline.iata||airline.n.substring(0,2).toUpperCase()}</div>`;
+  if (!airline.iata) return fallback;
+  return `<img class="fd-logo-img" src="https://pics.avs.io/60/60/${airline.iata}.png"
+    onerror="this.outerHTML='${fallback.replace(/'/g,'\\\'')}';"
+    alt="${airline.n} logo" loading="lazy">`;
+}
+
+function renderCard(f, route) {
+  const al  = f.airline;
+  const dep = route?.departure || '---';
+  const arr = route?.arrival   || 'LHR';
+  const airborne = route?.firstSeen ? fmtAirborne(route.firstSeen) : null;
+  const vrClass  = f.vr > 200 ? 'clr-g' : f.vr < -200 ? 'clr-r' : 'clr-a';
+  const vrStr    = fmtVr(f.vr);
+  const altClass = f.alt < 3000 ? 'clr-r' : f.alt > 25000 ? '' : '';
+
+  const stripeColor = al.col;
+  const typeName = f.typeCode ? `${f.typeCode}${f.reg ? ' · '+f.reg : ''}` : (f.reg||'');
+
+  return `
+    <div class="fd-card">
+      <div class="fd-stripe" style="background:${stripeColor};"></div>
+
+      <div class="fd-chead">
+        <div class="fd-logo-row">
+          ${logoHtml(al)}
+          <div class="fd-ainfo">
+            <span class="fd-aname">${al.n}</span>
+            <span class="fd-csreg">${f.cs}${f.reg ? ' · '+f.reg : ''}</span>
+          </div>
         </div>
-        <div class="f-m">
-          <span class="f-lbl">SPD</span>
-          <span class="f-val c-amber">${fmtSpd(f.spd)}</span>
+        ${cardBadgeHtml(f.cls)}
+      </div>
+
+      <div class="fd-route">
+        <div class="fd-apt">
+          <div class="fd-iata${dep==='---'?' dim':''}">${dep}</div>
+          <div class="fd-apt-lbl">${dep==='---'?'ORIGIN':'FROM'}</div>
         </div>
-        <div class="f-m">
-          <span class="f-lbl">VR</span>
-          <span class="f-val ${vc}">${fmtVr(f.vr)}</span>
+        <div class="fd-route-mid">
+          <div class="fd-arrow-row"><div class="fd-line"></div><span class="fd-arr">▶</span></div>
+          <div class="fd-type-pill">
+            <div class="fd-type-code">${f.typeCode||'—'}</div>
+          </div>
         </div>
-        <span class="f-arrow ${vc}">${vrArrow(f.vr)}</span>
-        <span class="f-dist">${f.distKm}km</span>
+        <div class="fd-apt">
+          <div class="fd-iata${arr==='---'?' dim':''}">${arr}</div>
+          <div class="fd-apt-lbl">TO</div>
+        </div>
+      </div>
+
+      <div class="fd-stats cols3">
+        <div class="fd-stat">
+          <div class="fd-sv ${altClass}">${f.alt.toLocaleString()}</div>
+          <div class="fd-sk">ALT ft</div>
+        </div>
+        <div class="fd-stat">
+          <div class="fd-sv">${f.spd!=null?f.spd:'---'}</div>
+          <div class="fd-sk">SPD kt</div>
+        </div>
+        <div class="fd-stat">
+          <div class="fd-sv">${f.dist}</div>
+          <div class="fd-sk">DIST km</div>
+        </div>
+      </div>
+
+      <div class="fd-stats2">
+        <div class="fd-st2">
+          <div class="fd-s2v ${vrClass}">${vrStr} ${f.vr>200?'↑':f.vr<-200?'↓':'→'}</div>
+          <div class="fd-s2k">V/S</div>
+        </div>
+        <div class="fd-st2">
+          <div class="fd-s2v ${airborne?'':'clr-d'}">${airborne||'---'}</div>
+          <div class="fd-s2k">AIRBORNE</div>
+        </div>
+        <div class="fd-st2">
+          <div class="fd-s2v clr-d">${f.dir!=null?dirLabel(f.dir):''} ${f.squawk&&['7700','7600','7500'].includes(f.squawk)?'⚠ '+f.squawk:''}</div>
+          <div class="fd-s2k">${f.squawk&&['7700','7600','7500'].includes(f.squawk)?'EMERGENCY':'BEARING'}</div>
+        </div>
       </div>
     </div>`;
-  }).join('');
 }
 
-// ---- Clock ----
-function tick() {
-  const n=new Date(), p=v=>String(v).padStart(2,'0');
-  document.getElementById('h-clock').textContent =
-    `${p(n.getUTCHours())}:${p(n.getUTCMinutes())}:${p(n.getUTCSeconds())} UTC`;
+function renderHelicopters(helis) {
+  const strip = document.getElementById('heli-strip');
+  const rows  = document.getElementById('heli-rows');
+  if (!helis.length) { strip.style.display='none'; return; }
+  strip.style.display='block';
+  rows.innerHTML = helis.map(h => `
+    <div class="heli-row">
+      <span class="heli-type">HELI</span>
+      <span class="heli-cs">${h.cs}</span>
+      <span class="heli-info">${h.airline.n}${h.reg?' · '+h.reg:''} · ${h.typeCode||'?'}</span>
+      <div class="heli-data">
+        <div><div class="heli-v">${h.alt.toLocaleString()}ft</div><div class="heli-k">ALT</div></div>
+        <div><div class="heli-v">${h.spd!=null?h.spd+'kt':'---'}</div><div class="heli-k">SPD</div></div>
+        <div><div class="heli-v">${h.dist}km</div><div class="heli-k">DIST</div></div>
+        <div><div class="heli-v clr-a">${h.dir!=null?dirLabel(h.dir):''}</div><div class="heli-k">DIR</div></div>
+      </div>
+    </div>`).join('');
+}
+
+function showEmpty(msg, sub) {
+  document.getElementById('cards').innerHTML = `
+    <div id="empty" style="grid-column:1/-1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; padding:40px;">
+      <div class="e-main">${msg}</div>
+      ${sub?`<div class="e-sub">${sub}</div>`:''}
+    </div>`;
+  document.getElementById('heli-strip').style.display='none';
+}
+
+function showError(msg) {
+  document.getElementById('cards').innerHTML = `
+    <div style="grid-column:1/-1; display:flex; align-items:center; justify-content:center; padding:30px;">
+      <div id="err-board">
+        <div class="err-title">Data error</div>
+        <div class="err-detail">${msg}</div>
+      </div>
+    </div>`;
+  document.getElementById('heli-strip').style.display='none';
 }
 
 // ---- Status ----
+let lastOkTime = 0;
+let lastGoodFlights = [];
+let staleTimer = null;
+
 function setOk(n) {
-  document.getElementById('live-dot').className = 'dot ok';
-  document.getElementById('h-live').textContent = 'LIVE';
-  document.getElementById('h-live').style.color = '#446600';
-  document.getElementById('h-count').textContent = `· ${n} aircraft`;
-  document.getElementById('f-src').textContent = activeSource;
-  const d=new Date(), p=v=>String(v).padStart(2,'0');
-  document.getElementById('f-upd').textContent =
+  lastOkTime = Date.now();
+  const dot = document.getElementById('live-dot');
+  dot.className = 'live-dot ok';
+  document.getElementById('hdr-status').textContent = 'LIVE';
+  document.getElementById('hdr-status').style.color = '';
+  document.getElementById('stale-time').style.display = 'none';
+  document.getElementById('hdr-count').textContent = `· ${n} aircraft`;
+  const d=new Date(),p=v=>String(v).padStart(2,'0');
+  document.getElementById('ftr-upd').textContent =
     `updated ${p(d.getUTCHours())}:${p(d.getUTCMinutes())}:${p(d.getUTCSeconds())} UTC`;
 }
-function setStale(msg) {
-  // Keep display live but show that data is from a previous fetch
-  document.getElementById('live-dot').className = 'dot';
-  document.getElementById('live-dot').style.background = '#886600';
-  document.getElementById('h-live').textContent = 'STALE';
-  document.getElementById('h-live').style.color = '#665500';
-  document.getElementById('f-upd').textContent = '429 · retrying in ' + Math.round(STORE.refresh/1000) + 's';
+function setStale() {
+  document.getElementById('live-dot').className = 'live-dot stale';
+  document.getElementById('hdr-status').textContent = 'STALE';
+  document.getElementById('hdr-status').style.color = '#886600';
+  updateStaleTime();
 }
-function setErr(msg) {
-  document.getElementById('live-dot').className = 'dot err';
-  document.getElementById('h-live').textContent = 'ERR';
-  document.getElementById('h-live').style.color = '#664400';
-  document.getElementById('h-count').textContent = '';
-  document.getElementById('f-upd').textContent = '';
+function setErr() {
+  document.getElementById('live-dot').className = 'live-dot err';
+  document.getElementById('hdr-status').textContent = 'ERR';
+  document.getElementById('hdr-status').style.color = '#aa3300';
+  document.getElementById('stale-time').style.display = 'none';
+}
+function updateStaleTime() {
+  if (!lastOkTime) return;
+  const s = Math.round((Date.now()-lastOkTime)/1000);
+  const el = document.getElementById('stale-time');
+  el.style.display = 'inline';
+  el.textContent = s < 60 ? `${s}s ago` : `${Math.floor(s/60)}m ${s%60}s ago`;
 }
 
 // ---- Main refresh ----
-let refreshTimer  = null;
-let lastGoodFlights = [];   // holds last successful fetch so display stays up on 429
+let refreshTimer = null;
 
 async function refresh() {
   try {
-    const flights = await fetchFlights();
-    lastGoodFlights = flights;
-    renderFlights(flights);
-    setOk(flights.length);
+    const all      = await fetchFlights();
+    const helis    = all.filter(f => f.category==='A7' || f.typeCode.startsWith('EC') || f.typeCode.startsWith('H1') || f.typeCode.startsWith('R22') || f.typeCode==='S76');
+    const planes   = all.filter(f => !helis.includes(f)).slice(0,2);
+
+    lastGoodFlights = { planes, helis };
+
+    await renderLive(planes, helis);
+    setOk(all.length);
   } catch(e) {
-    console.error('FlightDeck fetch error:', e);
-    // On error, keep showing last good data with a stale indicator
-    if (lastGoodFlights.length) {
-      renderFlights(lastGoodFlights);
-      setStale(e.message);
+    console.error('FlightDeck:', e);
+    if (lastGoodFlights.planes) {
+      await renderLive(lastGoodFlights.planes, lastGoodFlights.helis);
+      setStale();
+      if (staleTimer) clearInterval(staleTimer);
+      staleTimer = setInterval(updateStaleTime, 1000);
     } else {
-      setErr(e.message);
+      setErr();
       showError(e.message);
     }
   }
 }
 
-function startApp() {
-  if (refreshTimer) clearInterval(refreshTimer);
-  refresh();
-  refreshTimer = setInterval(refresh, STORE.refresh);
-}
-
-// ---- Settings panel ----
-function openSettings() {
-  document.getElementById('sp-cur-loc').textContent =
-    `Current: ${STORE.label || coordLabel(STORE.lat, STORE.lon)}`;
-  document.getElementById('sp-lat').value   = STORE.lat;
-  document.getElementById('sp-lon').value   = STORE.lon;
-  document.getElementById('sp-label').value = STORE.label;
-  document.getElementById('sp-dist').value  = STORE.dist;
-  document.getElementById('sp-rows').value  = STORE.rows;
-  document.getElementById('sp-worker').value = STORE.workerUrl;
-  document.getElementById('sp-loc-status').textContent = '';
-  document.getElementById('settings').classList.remove('hidden');
-}
-
-function closeSettings() { document.getElementById('settings').classList.add('hidden'); }
-
-async function spGeolocate() {
-  const status = document.getElementById('sp-loc-status');
-  status.textContent = 'REQUESTING GPS…';
-  try {
-    const pos = await geolocate();
-    status.textContent = 'GETTING PLACE NAME…';
-    const label = await reverseGeocode(pos.lat, pos.lon);
-    STORE.saveLoc(pos.lat, pos.lon, label);
-    document.getElementById('sp-lat').value   = pos.lat;
-    document.getElementById('sp-lon').value   = pos.lon;
-    document.getElementById('sp-label').value = label;
-    document.getElementById('sp-cur-loc').textContent = `Current: ${label}`;
-    status.textContent = `✓ Updated to ${label}`;
-    updateHeaderLocation();
-    refresh();
-  } catch(e) {
-    status.textContent = geoErrMsg(e);
-  }
-}
-
-function spManualSave() {
-  const lat   = parseFloat(document.getElementById('sp-lat').value);
-  const lon   = parseFloat(document.getElementById('sp-lon').value);
-  const label = document.getElementById('sp-label').value.trim().toUpperCase();
-  if (isNaN(lat)||isNaN(lon)) {
-    document.getElementById('sp-loc-status').textContent = 'Invalid coordinates.';
+async function renderLive(planes, helis) {
+  const cards = document.getElementById('cards');
+  if (!planes.length && !helis.length) {
+    showEmpty('No aircraft in range', `r=${S.dist}nm · refreshing every ${Math.round(S.refresh/1000)}s`);
+    renderHelicopters([]);
     return;
   }
-  STORE.saveLoc(lat, lon, label || coordLabel(lat, lon));
-  document.getElementById('sp-cur-loc').textContent = `Current: ${STORE.label}`;
-  document.getElementById('sp-loc-status').textContent = '✓ Location saved';
-  updateHeaderLocation();
-  refresh();
+  if (!planes.length) {
+    cards.innerHTML = '<div style="grid-column:1/-1;display:flex;align-items:center;justify-content:center;color:var(--dim);font-size:15px;padding:20px;">No fixed-wing aircraft in range</div>';
+  } else {
+    // Fetch route info for displayed flights (cached — only new callsigns hit the API)
+    const routes = await Promise.all(
+      planes.map(f => fetchRouteInfo(f.hex, f.cs))
+    );
+    cards.innerHTML = planes.map((f,i) => renderCard(f, routes[i])).join('');
+  }
+  renderHelicopters(helis);
 }
 
-function spSaveDisplay() {
-  const dist = parseInt(document.getElementById('sp-dist').value) || STORE.dist;
-  const rows = parseInt(document.getElementById('sp-rows').value) || STORE.rows;
-  STORE.saveDisplay(dist, rows);
-  closeSettings();
-  startApp();
-}
-
-
-function spSaveWorker() {
-  const url = document.getElementById('sp-worker').value.trim();
-  STORE.saveWorker(url);
-  document.getElementById('sp-loc-status').textContent = url ? `✓ Worker URL saved` : '✓ Worker URL cleared';
-  startApp();
-}
-
-function spForgetLocation() {
-  if (!confirm('Clear saved location and return to the welcome screen?')) return;
-  STORE.forget();
+function startApp() {
   if (refreshTimer) clearInterval(refreshTimer);
-  document.getElementById('settings').classList.add('hidden');
-  document.getElementById('app').classList.add('hidden');
-  document.getElementById('cfg-btn').classList.add('hidden');
-  document.getElementById('w-status').style.display = 'none';
-  document.getElementById('w-error').textContent = '';
-  document.getElementById('btn-locate').disabled = false;
-  document.getElementById('btn-locate').textContent = 'LOCATE ME  ▶';
-  document.getElementById('welcome').classList.remove('hidden');
+  if (staleTimer)   clearInterval(staleTimer);
+  refresh();
+  refreshTimer = setInterval(refresh, S.refresh);
 }
 
-// ---- Wake Lock ----
+// ---- Clock ----
+function tick() {
+  const n=new Date(),p=v=>String(v).padStart(2,'0');
+  document.getElementById('hdr-clk').textContent =
+    `${p(n.getUTCHours())}:${p(n.getUTCMinutes())}:${p(n.getUTCSeconds())} UTC`;
+}
+
+// ---- Wake lock ----
 async function wakeLock() {
   try {
     await navigator.wakeLock.request('screen');
     document.addEventListener('visibilitychange', async () => {
-      if (document.visibilityState === 'visible')
+      if (document.visibilityState==='visible')
         try { await navigator.wakeLock.request('screen'); } catch(e) {}
     });
   } catch(e) {}
+}
+
+// ---- Settings ----
+function openCfg() {
+  document.getElementById('sp-cur').textContent   = `Current: ${S.label||coordLabel(S.lat,S.lon)}`;
+  document.getElementById('sp-lat').value         = S.lat||'';
+  document.getElementById('sp-lon').value         = S.lon||'';
+  document.getElementById('sp-label').value       = S.label||'';
+  document.getElementById('sp-dist').value        = S.dist;
+  document.getElementById('sp-rfsh').value        = Math.round(S.refresh/1000);
+  document.getElementById('sp-worker').value      = S.workerUrl;
+  document.getElementById('sp-loc-st').textContent= '';
+  document.getElementById('cfg-panel').classList.remove('hidden');
+}
+function closeCfg() { document.getElementById('cfg-panel').classList.add('hidden'); }
+
+async function spGeolocate() {
+  const st = document.getElementById('sp-loc-st');
+  st.textContent='Requesting GPS…';
+  try {
+    const pos = await geolocate();
+    st.textContent='Getting place name…';
+    const label = await reverseGeocode(pos.lat,pos.lon);
+    S.saveLoc(pos.lat,pos.lon,label);
+    document.getElementById('sp-lat').value=pos.lat;
+    document.getElementById('sp-lon').value=pos.lon;
+    document.getElementById('sp-label').value=label;
+    document.getElementById('sp-cur').textContent=`Current: ${label}`;
+    document.getElementById('hdr-loc').textContent=`⊙ ${label}`;
+    st.textContent=`✓ Updated to ${label}`;
+    startApp();
+  } catch(e) { st.textContent=geoErrMsg(e); }
+}
+
+function spManualSave() {
+  const lat  = parseFloat(document.getElementById('sp-lat').value);
+  const lon  = parseFloat(document.getElementById('sp-lon').value);
+  const lbl  = document.getElementById('sp-label').value.trim().toUpperCase();
+  if (isNaN(lat)||isNaN(lon)) { document.getElementById('sp-loc-st').textContent='Invalid coordinates.'; return; }
+  S.saveLoc(lat,lon,lbl||coordLabel(lat,lon));
+  document.getElementById('hdr-loc').textContent=`⊙ ${S.label}`;
+  document.getElementById('sp-cur').textContent=`Current: ${S.label}`;
+  document.getElementById('sp-loc-st').textContent='✓ Saved';
+  startApp();
+}
+
+function spSaveDisplay() {
+  const dist = parseInt(document.getElementById('sp-dist').value)||S.dist;
+  const rfsh = parseInt(document.getElementById('sp-rfsh').value)||30;
+  S.saveDisplay(dist, Math.max(20,rfsh)*1000);
+  closeCfg(); startApp();
+}
+
+function spSaveWorker() {
+  const url = document.getElementById('sp-worker').value.trim();
+  S.saveWorker(url);
+  document.getElementById('sp-loc-st').textContent = url ? '✓ Worker URL saved' : '✓ Cleared';
+  startApp();
+}
+
+function spForget() {
+  if (!confirm('Clear saved location and return to welcome screen?')) return;
+  S.forget();
+  if (refreshTimer) clearInterval(refreshTimer);
+  if (staleTimer)   clearInterval(staleTimer);
+  closeCfg();
+  document.getElementById('app').classList.add('hidden');
+  document.getElementById('cfg-btn').classList.add('hidden');
+  document.getElementById('w-status').style.display='none';
+  document.getElementById('w-error').textContent='';
+  document.getElementById('btn-locate').disabled=false;
+  document.getElementById('btn-locate').textContent='Locate me';
+  document.getElementById('welcome').classList.remove('hidden');
 }
 
 // ---- Service worker ----
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
 
 // ---- Boot ----
-tick();
-setInterval(tick, 1000);
-wakeLock();
-
-if (STORE.hasLocation()) {
-  // Returning user — go straight to live view
-  goLive();
-} else {
-  // First time — show welcome/location screen
-  // (nothing to do, welcome screen is visible by default)
-}
+tick(); setInterval(tick, 1000); wakeLock();
+if (S.hasLoc()) { goLive(); } 
 </script>
 </body>
 </html>
