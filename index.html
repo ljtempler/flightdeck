@@ -7,240 +7,366 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-fullscreen">
   <meta name="apple-mobile-web-app-title" content="FlightWall">
   <link rel="manifest" href="manifest.json">
-  <title>FlightWall · Barnes</title>
+  <title>FlightWall</title>
   <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
   <style>
-    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
 
     :root {
-      --amber:     #FFB200;
-      --dim-amber: #554400;
-      --green:     #00E87A;
-      --red:       #FF5050;
-      --white:     #D8D8D8;
-      --muted:     #3A3200;
-      --bg:        #020202;
-      --row-alt:   rgba(18,16,0,0.5);
-      --rule:      #141200;
+      --amber: #FFB200;
+      --dim:   #554400;
+      --green: #00E87A;
+      --red:   #FF5050;
+      --white: #D8D8D8;
+      --muted: #3A3200;
+      --bg:    #020202;
+      --rule:  #141200;
     }
 
     html, body {
-      width: 100%; height: 100%;
+      width:100%; height:100%;
       background: var(--bg);
       color: var(--amber);
       font-family: 'VT323', monospace;
       overflow: hidden;
-      -webkit-user-select: none; user-select: none;
-      -webkit-tap-highlight-color: transparent;
+      -webkit-user-select:none; user-select:none;
+      -webkit-tap-highlight-color:transparent;
     }
 
+    /* LED dot grid on all screens */
     body::after {
-      content: '';
-      position: fixed; inset: 0;
+      content:'';
+      position:fixed; inset:0;
       background-image: radial-gradient(circle, #0d0b04 1.5px, transparent 1.5px);
       background-size: 5px 5px;
-      pointer-events: none;
-      z-index: 0;
+      pointer-events:none; z-index:0;
     }
 
-    #loading {
-      position: fixed; inset: 0;
-      background: var(--bg);
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      gap: 20px;
-      z-index: 200;
-      transition: opacity 0.5s;
+    /* =====================================================
+       WELCOME / ONBOARDING SCREEN
+       Shown when no location is saved.
+       Zero coordinates in this file — all stored on-device.
+    ===================================================== */
+    #welcome {
+      position:fixed; inset:0; z-index:100;
+      display:flex; flex-direction:column;
+      align-items:center; justify-content:center;
+      gap:0; padding:24px;
     }
-    #loading.fade { opacity: 0; pointer-events: none; }
-    #loading.hidden { display: none; }
+    #welcome.hidden { display:none; }
 
-    .l-title { font-size: 16px; color: var(--dim-amber); letter-spacing: 6px; }
-    .l-msg   { font-size: 32px; color: var(--amber); letter-spacing: 3px; }
-    .l-blink { animation: blink 1s step-end infinite; }
-    @keyframes blink { 50% { opacity: 0; } }
+    .w-logo {
+      font-size: clamp(38px,8vw,72px);
+      color: var(--amber);
+      letter-spacing: 6px;
+      line-height:1;
+      margin-bottom: 6px;
+    }
+    .w-sub {
+      font-size: clamp(13px,2vw,20px);
+      color: var(--dim);
+      letter-spacing: 3px;
+      margin-bottom: 32px;
+      text-align:center;
+    }
+    .w-desc {
+      font-size: clamp(15px,2.2vw,22px);
+      color: #444400;
+      text-align:center;
+      max-width: 480px;
+      line-height:1.5;
+      margin-bottom: 36px;
+    }
 
+    /* Big locate button */
+    #btn-locate {
+      font-family:'VT323',monospace;
+      font-size: clamp(22px,3.5vw,34px);
+      color: #020202;
+      background: var(--amber);
+      border: none;
+      padding: 12px 40px;
+      border-radius: 4px;
+      cursor:pointer;
+      letter-spacing:3px;
+      margin-bottom:20px;
+      transition: background 0.15s;
+    }
+    #btn-locate:hover  { background: #ffc733; }
+    #btn-locate:active { background: #cc8e00; }
+    #btn-locate:disabled { background:#554400; color:#333; cursor:default; }
+
+    .w-or {
+      font-size:15px; color:#2a2400; margin-bottom:14px; letter-spacing:2px;
+    }
+
+    /* Manual entry toggle */
+    #btn-manual {
+      font-family:'VT323',monospace; font-size:17px;
+      color: var(--dim); background:none; border:none;
+      cursor:pointer; letter-spacing:2px; text-decoration:underline;
+      margin-bottom:20px;
+    }
+    #btn-manual:hover { color: var(--amber); }
+
+    #manual-form {
+      display:none; flex-direction:column; gap:10px;
+      width:100%; max-width:320px;
+      margin-top:4px;
+    }
+    #manual-form.show { display:flex; }
+
+    .mf-row { display:flex; flex-direction:column; gap:3px; }
+    .mf-lbl { font-size:13px; color:var(--dim); letter-spacing:2px; }
+    .mf-inp {
+      font-family:'VT323',monospace; font-size:20px;
+      background:#0d0c00; border:1px solid #2a2800;
+      color:var(--amber); padding:6px 10px; border-radius:4px; outline:none;
+      width:100%;
+    }
+    .mf-inp:focus { border-color: var(--dim); }
+
+    #btn-manual-go {
+      font-family:'VT323',monospace; font-size:20px;
+      color:#020202; background:var(--dim);
+      border:none; padding:8px 20px; border-radius:4px;
+      cursor:pointer; letter-spacing:2px; margin-top:4px;
+    }
+    #btn-manual-go:hover { background: var(--amber); }
+
+    .w-error {
+      font-size:16px; color:var(--red);
+      text-align:center; max-width:380px;
+      margin-top:14px; letter-spacing:1px;
+      min-height:22px;
+    }
+
+    /* Status text on the welcome screen (locating…) */
+    .w-status {
+      font-size: clamp(18px,2.8vw,28px);
+      color: var(--dim);
+      letter-spacing:4px;
+      margin-top:8px;
+    }
+    .w-blink { animation: blink 1s step-end infinite; }
+    @keyframes blink { 50%{opacity:0;} }
+
+
+    /* =====================================================
+       MAIN APP — shown once location is known
+    ===================================================== */
     #app {
-      position: relative; z-index: 1;
-      display: flex; flex-direction: column;
-      height: 100vh; height: 100dvh;
-      padding: env(safe-area-inset-top,0px) env(safe-area-inset-right,0px)
-               env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px);
+      position:relative; z-index:1;
+      display:flex; flex-direction:column;
+      height:100vh; height:100dvh;
+      padding: env(safe-area-inset-top,0) env(safe-area-inset-right,0)
+               env(safe-area-inset-bottom,0) env(safe-area-inset-left,0);
     }
+    #app.hidden { display:none; }
 
+    /* Header */
     #header {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 0 16px;
-      height: 46px;
-      border-bottom: 1px solid var(--rule);
-      flex-shrink: 0;
+      display:flex; align-items:center; justify-content:space-between;
+      padding:0 14px; height:46px;
+      border-bottom:1px solid var(--rule);
+      flex-shrink:0;
     }
-    .h-loc   { font-size: clamp(13px,1.8vw,22px); color: var(--amber); letter-spacing: 1px; }
-    .h-mid   { display: flex; align-items: center; gap: 10px; }
-    .h-clock { font-size: clamp(18px,2.5vw,30px); color: var(--amber); }
+    .h-loc   { font-size:clamp(13px,1.8vw,22px); color:var(--amber); letter-spacing:1px; cursor:pointer; }
+    .h-loc:hover { color:#ffc733; }
+    .h-mid   { display:flex; align-items:center; gap:10px; }
+    .h-clock { font-size:clamp(18px,2.5vw,30px); color:var(--amber); }
 
-    .live-dot {
-      width: 8px; height: 8px; border-radius: 50%;
-      background: #00aa44; flex-shrink: 0;
-    }
-    .live-dot.err { background: #aa3300; animation: none; }
-    .live-dot.ok  { animation: pulse 2.4s ease-in-out infinite; }
+    .dot { width:8px; height:8px; border-radius:50%; background:#00aa44; }
+    .dot.ok  { animation:pulse 2.4s ease-in-out infinite; }
+    .dot.err { background:#aa3300; animation:none; }
     @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.2} }
 
-    .h-live  { font-size: clamp(14px,1.8vw,22px); color: #446600; }
-    .h-count { font-size: clamp(12px,1.5vw,18px); color: #333300; }
+    .h-live  { font-size:clamp(14px,1.8vw,22px); color:#446600; }
+    .h-count { font-size:clamp(12px,1.5vw,18px); color:#333300; }
 
-    #board {
-      flex: 1; display: flex; flex-direction: column;
-      overflow: hidden;
-    }
+    /* Board */
+    #board { flex:1; display:flex; flex-direction:column; overflow:hidden; }
 
-    .flight-row {
-      display: flex; align-items: center;
-      padding: 0 14px 0 10px;
-      border-bottom: 1px solid var(--rule);
-      flex: 1; min-height: 0;
-      gap: 0;
-      position: relative;
+    .row {
+      display:flex; align-items:center;
+      padding:0 14px 0 10px;
+      border-bottom:1px solid var(--rule);
+      flex:1; min-height:0;
     }
-    .flight-row:nth-child(odd) { background: var(--row-alt); }
+    .row:nth-child(odd) { background:rgba(18,16,0,0.5); }
 
     .f-cs {
-      font-size: clamp(20px, 3.8vh, 42px);
-      color: var(--amber);
-      width: clamp(100px, 11vw, 155px);
-      flex-shrink: 0;
-      letter-spacing: 1px;
-      line-height: 1;
+      font-size:clamp(20px,3.8vh,42px);
+      color:var(--amber); letter-spacing:1px; line-height:1;
+      width:clamp(100px,11vw,155px); flex-shrink:0;
     }
-
     .f-name {
-      font-size: clamp(16px, 2.8vh, 30px);
-      color: var(--white);
-      flex: 1; min-width: 0;
-      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-      padding-right: 8px;
-      line-height: 1;
+      font-size:clamp(16px,2.8vh,30px);
+      color:var(--white); flex:1; min-width:0;
+      overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+      padding-right:8px; line-height:1;
     }
-
     .f-badge {
-      display: inline-block;
-      font-size: clamp(9px, 1.2vh, 14px);
-      padding: 1px 6px;
-      border-radius: 3px;
-      margin-left: 8px;
-      vertical-align: middle;
-      flex-shrink: 0;
+      display:inline-block; font-size:clamp(9px,1.2vh,14px);
+      padding:1px 6px; border-radius:3px;
+      margin-left:8px; vertical-align:middle; flex-shrink:0;
     }
-    .badge-appr  { background:#1a0800; color:#FF8822; border:1px solid #442200; }
-    .badge-dept  { background:#041000; color:#66BB00; border:1px solid #224400; }
-    .badge-enrte { background:#080814; color:#4488FF; border:1px solid #223366; }
+    .b-appr { background:#1a0800; color:#FF8822; border:1px solid #442200; }
+    .b-dept { background:#041000; color:#66BB00; border:1px solid #224400; }
+    .b-enrt { background:#080814; color:#4488FF; border:1px solid #223366; }
+    .b-type { background:#0a0a08; color:#666644; border:1px solid #333322; font-size:clamp(8px,1vh,12px); }
 
-    .f-metrics {
-      display: flex; align-items: center;
-      gap: clamp(10px, 2vw, 28px);
-      flex-shrink: 0;
-    }
+    .f-metrics { display:flex; align-items:center; gap:clamp(10px,2vw,28px); flex-shrink:0; }
 
-    .f-m {
-      display: flex; flex-direction: column; align-items: flex-end;
-      min-width: clamp(60px, 8vw, 110px);
-    }
-    .f-lbl { font-size: clamp(9px,1.1vh,14px); color: var(--muted); line-height:1; }
-    .f-val { font-size: clamp(16px,2.8vh,34px); line-height:1.05; }
+    .f-m { display:flex; flex-direction:column; align-items:flex-end; min-width:clamp(60px,8vw,110px); }
+    .f-lbl { font-size:clamp(9px,1.1vh,14px); color:var(--muted); line-height:1; }
+    .f-val { font-size:clamp(16px,2.8vh,34px); line-height:1.05; }
 
     .f-arrow {
-      font-size: clamp(20px,3.6vh,44px);
-      width: clamp(28px,3.5vw,48px);
-      text-align: center;
-      flex-shrink: 0;
-      line-height: 1;
+      font-size:clamp(20px,3.6vh,44px);
+      width:clamp(28px,3.5vw,48px);
+      text-align:center; flex-shrink:0; line-height:1;
     }
-
     .f-dist {
-      font-size: clamp(12px,1.8vh,22px);
-      color: var(--muted);
-      width: clamp(36px,4.5vw,58px);
-      text-align: right;
-      flex-shrink: 0;
+      font-size:clamp(12px,1.8vh,22px); color:var(--muted);
+      width:clamp(36px,4.5vw,58px); text-align:right; flex-shrink:0;
     }
 
-    .clr-climb { color: var(--green); }
-    .clr-desc  { color: var(--red); }
-    .clr-level { color: #666600; }
-    .clr-amber { color: var(--amber); }
-    .clr-hi    { color: var(--white); }
-    .clr-low   { color: var(--red); }
+    .c-climb { color:var(--green); }
+    .c-desc  { color:var(--red);   }
+    .c-level { color:#666600;      }
+    .c-amber { color:var(--amber); }
+    .c-white { color:var(--white); }
+    .c-red   { color:var(--red);   }
 
-    #empty {
-      flex: 1; display: flex; flex-direction: column;
-      align-items: center; justify-content: center; gap: 12px;
-    }
-    .empty-main { font-size: 32px; color: var(--muted); letter-spacing: 4px; }
-    .empty-sub  { font-size: 18px; color: #222100; letter-spacing: 2px; }
+    /* Empty state */
+    #empty { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; }
+    .e-main { font-size:32px; color:var(--muted); letter-spacing:4px; }
+    .e-sub  { font-size:18px; color:#222100; letter-spacing:2px; }
 
+    /* Footer */
     #footer {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 0 14px;
-      height: 30px;
-      border-top: 1px solid var(--rule);
-      flex-shrink: 0;
-      font-size: clamp(10px, 1.4vh, 15px);
-      color: #252100;
+      display:flex; align-items:center; justify-content:space-between;
+      padding:0 14px; height:30px;
+      border-top:1px solid var(--rule); flex-shrink:0;
+      font-size:clamp(10px,1.4vh,15px); color:#252100;
     }
-    #footer a { color: #252100; text-decoration: none; }
+    #footer a { color:#252100; text-decoration:none; }
 
-    #settings-btn {
-      position: fixed; bottom: 36px; right: 16px;
-      z-index: 50;
-      background: var(--bg); border: 1px solid #2a2800;
-      color: #333200; font-family: 'VT323', monospace;
-      font-size: 14px; padding: 4px 10px; border-radius: 4px;
-      cursor: pointer; opacity: 0.4;
-      transition: opacity 0.2s;
+    /* =====================================================
+       SETTINGS PANEL (overlay, shown during live mode)
+    ===================================================== */
+    #settings {
+      position:fixed; inset:0; z-index:150;
+      background:rgba(0,0,0,0.92);
+      display:flex; align-items:center; justify-content:center;
     }
-    #settings-btn:hover { opacity: 1; }
+    #settings.hidden { display:none; }
 
-    #settings-panel {
-      position: fixed; inset: 0; z-index: 100;
-      background: rgba(0,0,0,0.9);
-      display: flex; align-items: center; justify-content: center;
+    .sp {
+      background:#0a0900; border:1px solid #2a2800;
+      border-radius:8px; padding:24px;
+      width:360px; max-width:90vw;
     }
-    #settings-panel.hidden { display: none; }
-    .sp-box {
-      background: #0a0900; border: 1px solid #2a2800;
-      border-radius: 8px; padding: 24px; width: 380px; max-width: 90vw;
+    .sp-title { font-size:22px; color:var(--amber); margin-bottom:6px; letter-spacing:2px; }
+    .sp-cur   { font-size:14px; color:#444400; margin-bottom:20px; letter-spacing:1px; }
+
+    .sp-row { margin-bottom:14px; }
+    .sp-lbl { font-size:13px; color:#666600; display:block; margin-bottom:3px; letter-spacing:1px; }
+    .sp-inp {
+      width:100%; background:#0f0e00; border:1px solid #2a2800;
+      color:var(--amber); font-family:'VT323',monospace; font-size:18px;
+      padding:5px 10px; border-radius:4px; outline:none;
     }
-    .sp-title { font-size: 24px; color: var(--amber); margin-bottom: 16px; letter-spacing: 2px; }
-    .sp-row   { margin-bottom: 14px; }
-    .sp-label { font-size: 14px; color: #666600; display: block; margin-bottom: 4px; }
-    .sp-input {
-      width: 100%; background: #0f0e00; border: 1px solid #2a2800;
-      color: var(--amber); font-family: 'VT323', monospace; font-size: 18px;
-      padding: 6px 10px; border-radius: 4px; outline: none;
+    .sp-note { font-size:11px; color:#333200; margin-top:4px; }
+
+    .sp-section {
+      border-top:1px solid #1a1800; padding-top:14px; margin-top:14px;
     }
-    .sp-note  { font-size: 12px; color: #333200; margin-top: 6px; }
-    .sp-btn   {
-      background: #1a1800; border: 1px solid #3a3600; color: var(--amber);
-      font-family: 'VT323', monospace; font-size: 20px; padding: 8px 20px;
-      border-radius: 4px; cursor: pointer; margin-right: 10px; margin-top: 8px;
+    .sp-section-title { font-size:14px; color:var(--dim); letter-spacing:2px; margin-bottom:10px; }
+
+    .sp-btn {
+      font-family:'VT323',monospace; font-size:18px;
+      background:#1a1800; border:1px solid #3a3600; color:var(--amber);
+      padding:7px 16px; border-radius:4px; cursor:pointer;
+      margin-right:8px; margin-top:6px; letter-spacing:1px;
     }
-    .sp-btn:hover { background: #252300; }
-    .sp-close { color: #444400; }
+    .sp-btn:hover { background:#252300; }
+    .sp-btn.primary { background:var(--amber); color:#020202; border-color:var(--amber); }
+    .sp-btn.primary:hover { background:#ffc733; }
+    .sp-btn.danger  { color:#884444; border-color:#441111; }
+    .sp-btn.danger:hover { color:var(--red); border-color:#662222; background:#120000; }
+    .sp-btn.ghost { color:var(--dim); border-color:transparent; background:none; }
+    .sp-btn.ghost:hover { color:var(--amber); }
+
+    .sp-locate-status { font-size:14px; color:var(--dim); margin-top:8px; min-height:18px; letter-spacing:1px; }
+
+    /* Settings trigger — bottom corner of screen during live mode */
+    #cfg-btn {
+      position:fixed; bottom:36px; right:14px; z-index:50;
+      background:var(--bg); border:1px solid #2a2800;
+      color:#333200; font-family:'VT323',monospace;
+      font-size:14px; padding:4px 10px; border-radius:4px;
+      cursor:pointer; opacity:0.35; transition:opacity 0.2s;
+    }
+    #cfg-btn:hover { opacity:1; }
+    #cfg-btn.hidden { display:none; }
   </style>
 </head>
 <body>
 
-<div id="loading">
-  <div class="l-title">FLIGHTWALL · BARNES SW13</div>
-  <div class="l-msg l-blink" id="l-msg">SCANNING AIRSPACE_</div>
+<!-- ========================================================
+     WELCOME SCREEN — no coordinates stored in source code.
+     Location is requested from the browser and stored only
+     in localStorage on this device.
+======================================================== -->
+<div id="welcome">
+  <div class="w-logo">FLIGHTWALL</div>
+  <div class="w-sub">LIVE ADS-B AIRCRAFT TRACKER</div>
+  <div class="w-desc">
+    Displays aircraft near you using live ADS-B data.<br>
+    Works anywhere — home, airport, hotel, anywhere.
+  </div>
+
+  <button id="btn-locate" onclick="onLocateClick()">
+    LOCATE ME  ▶
+  </button>
+
+  <div class="w-or">— or —</div>
+
+  <button id="btn-manual" onclick="toggleManual()">
+    enter coordinates manually
+  </button>
+
+  <div id="manual-form">
+    <div class="mf-row">
+      <span class="mf-lbl">LATITUDE</span>
+      <input class="mf-inp" id="m-lat" type="number" step="0.0001" placeholder="e.g. 51.4694">
+    </div>
+    <div class="mf-row">
+      <span class="mf-lbl">LONGITUDE</span>
+      <input class="mf-inp" id="m-lon" type="number" step="0.0001" placeholder="e.g. -0.2405">
+    </div>
+    <div class="mf-row">
+      <span class="mf-lbl">LABEL (optional)</span>
+      <input class="mf-inp" id="m-label" type="text" placeholder="e.g. Home">
+    </div>
+    <button id="btn-manual-go" onclick="onManualSubmit()">USE THESE COORDINATES ▶</button>
+  </div>
+
+  <div class="w-status w-blink" id="w-status" style="display:none;"></div>
+  <div class="w-error" id="w-error"></div>
 </div>
 
-<div id="app">
+
+<!-- ========================================================
+     MAIN APP — hidden until location is confirmed
+======================================================== -->
+<div id="app" class="hidden">
   <div id="header">
-    <span class="h-loc" id="h-loc">BARNES SW13 · 51.47°N 0.24°W</span>
+    <span class="h-loc" id="h-loc" onclick="openSettings()" title="Tap to change location">⊙ --</span>
     <div class="h-mid">
-      <div class="live-dot ok" id="live-dot"></div>
+      <div class="dot ok" id="live-dot"></div>
       <span class="h-live" id="h-live">LIVE</span>
       <span class="h-count" id="h-count"></span>
     </div>
@@ -250,249 +376,332 @@
   <div id="board"></div>
 
   <div id="footer">
-    <span>OpenSky Network · <a href="https://opensky-network.org">opensky-network.org</a></span>
-    <span id="f-update">--</span>
+    <span>adsb.lol community network · <a href="https://adsb.lol">adsb.lol</a></span>
+    <span id="f-upd">--</span>
   </div>
 </div>
 
-<button id="settings-btn" onclick="openSettings()">⚙ config</button>
+<button id="cfg-btn" class="hidden" onclick="openSettings()">⚙ settings</button>
 
-<div id="settings-panel" class="hidden">
-  <div class="sp-box">
-    <div class="sp-title">⚙ FLIGHTWALL CONFIG</div>
 
-    <div class="sp-row">
-      <label class="sp-label">Location label</label>
-      <input class="sp-input" id="cfg-label" value="">
-      <p class="sp-note">Shown in the header</p>
-    </div>
-    <div class="sp-row">
-      <label class="sp-label">Latitude</label>
-      <input class="sp-input" id="cfg-lat" type="number" step="0.0001">
-    </div>
-    <div class="sp-row">
-      <label class="sp-label">Longitude</label>
-      <input class="sp-input" id="cfg-lon" type="number" step="0.0001">
-    </div>
-    <div class="sp-row">
-      <label class="sp-label">Search radius (km)</label>
-      <input class="sp-input" id="cfg-radius" type="number" step="5">
-    </div>
-    <div class="sp-row">
-      <label class="sp-label">OpenSky username <span style="color:#333200">(optional — free at opensky-network.org)</span></label>
-      <input class="sp-input" id="cfg-user" autocomplete="username">
-      <p class="sp-note">Registered users get higher rate limits — needed for 24/7 use</p>
-    </div>
-    <div class="sp-row">
-      <label class="sp-label">OpenSky password</label>
-      <input class="sp-input" id="cfg-pass" type="password" autocomplete="current-password">
+<!-- ========================================================
+     SETTINGS PANEL (overlay during live mode)
+======================================================== -->
+<div id="settings" class="hidden">
+  <div class="sp">
+    <div class="sp-title">⚙ SETTINGS</div>
+    <div class="sp-cur" id="sp-cur-loc">Current: --</div>
+
+    <!-- Update location -->
+    <div class="sp-section">
+      <div class="sp-section-title">LOCATION</div>
+      <button class="sp-btn primary" onclick="spGeolocate()">USE MY CURRENT LOCATION</button>
+      <div class="sp-locate-status" id="sp-loc-status"></div>
+      <div style="margin-top:14px;">
+        <div class="sp-row">
+          <label class="sp-lbl">Or enter manually</label>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
+          <div>
+            <label class="sp-lbl">LATITUDE</label>
+            <input class="sp-inp" id="sp-lat" type="number" step="0.0001">
+          </div>
+          <div>
+            <label class="sp-lbl">LONGITUDE</label>
+            <input class="sp-inp" id="sp-lon" type="number" step="0.0001">
+          </div>
+        </div>
+        <div class="sp-row">
+          <label class="sp-lbl">LABEL</label>
+          <input class="sp-inp" id="sp-label" type="text">
+        </div>
+        <button class="sp-btn" onclick="spManualSave()">SAVE LOCATION</button>
+      </div>
     </div>
 
-    <button class="sp-btn" onclick="saveSettings()">SAVE + RESTART</button>
-    <button class="sp-btn sp-close" onclick="closeSettings()">CANCEL</button>
+    <!-- Display settings -->
+    <div class="sp-section">
+      <div class="sp-section-title">DISPLAY</div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+        <div>
+          <label class="sp-lbl">RADIUS (nm)</label>
+          <input class="sp-inp" id="sp-dist" type="number" step="5" min="5" max="100">
+          <p class="sp-note">22nm ≈ 40km</p>
+        </div>
+        <div>
+          <label class="sp-lbl">MAX ROWS</label>
+          <input class="sp-inp" id="sp-rows" type="number" step="1" min="4" max="12">
+        </div>
+      </div>
+      <button class="sp-btn" onclick="spSaveDisplay()" style="margin-top:10px;">SAVE</button>
+    </div>
+
+    <!-- Danger zone -->
+    <div class="sp-section">
+      <button class="sp-btn danger" onclick="spForgetLocation()">FORGET LOCATION</button>
+      <p class="sp-note">Returns to the welcome screen. Clears stored coordinates from this device.</p>
+    </div>
+
+    <div style="margin-top:16px;">
+      <button class="sp-btn ghost" onclick="closeSettings()">CLOSE</button>
+    </div>
   </div>
 </div>
+
 
 <script>
 // ============================================================
-//  FlightWall Barnes · PWA
-//  Real-time ADS-B via OpenSky Network
-//  github.com/AxisNimble/TheFlightWall_OSS inspired
+//  FlightWall — Privacy-first PWA
+//  No coordinates in source code. Location stored on-device only.
+//  Data: adsb.lol (free, no auth required, CORS enabled)
 // ============================================================
 
-const DEFAULT_CFG = {
-  lat:      51.4694,
-  lon:      -0.2405,
-  label:    'BARNES SW13',
-  radiusKm: 40,
-  user:     '',
-  pass:     '',
-  refreshMs: 12000,
-  maxRows:  8,
+// ---- Persisted settings (localStorage only) ----
+const STORE = {
+  get lat()   { return parseFloat(localStorage.getItem('fw_lat')); },
+  get lon()   { return parseFloat(localStorage.getItem('fw_lon')); },
+  get label() { return localStorage.getItem('fw_label') || ''; },
+  get dist()  { return parseInt(localStorage.getItem('fw_dist')) || 22; },
+  get rows()  { return parseInt(localStorage.getItem('fw_rows')) || 8; },
+  get refresh(){ return parseInt(localStorage.getItem('fw_rfms')) || 12000; },
+  hasLocation() { return !isNaN(this.lat) && !isNaN(this.lon) && this.lat && this.lon; },
+  saveLoc(lat, lon, label) {
+    localStorage.setItem('fw_lat',   lat);
+    localStorage.setItem('fw_lon',   lon);
+    localStorage.setItem('fw_label', label || coordLabel(lat, lon));
+  },
+  saveDisplay(dist, rows) {
+    localStorage.setItem('fw_dist', dist);
+    localStorage.setItem('fw_rows', rows);
+  },
+  forget() {
+    ['fw_lat','fw_lon','fw_label'].forEach(k => localStorage.removeItem(k));
+  },
 };
 
-let CFG = loadCfg();
-
-function loadCfg() {
-  try {
-    const s = localStorage.getItem('fw_cfg');
-    return s ? { ...DEFAULT_CFG, ...JSON.parse(s) } : { ...DEFAULT_CFG };
-  } catch(e) { return { ...DEFAULT_CFG }; }
-}
-
-function saveCfg(c) {
-  try { localStorage.setItem('fw_cfg', JSON.stringify(c)); } catch(e) {}
-}
-
-function bboxFromRadius(lat, lon, km) {
-  const dLat = km / 111;
-  const dLon = km / (111 * Math.cos(lat * Math.PI / 180));
-  return { lamin: lat-dLat, lamax: lat+dLat, lomin: lon-dLon, lomax: lon+dLon };
-}
-
-// ---- Airline lookup (ICAO 3-letter prefix → name) ----
-const AIRLINES = {
-  BAW:'British Airways', EZY:'easyJet', RYR:'Ryanair', UAE:'Emirates',
-  VIR:'Virgin Atlantic', QTR:'Qatar Airways', SIA:'Singapore Airlines',
-  CPA:'Cathay Pacific', AAL:'American Airlines', UAL:'United Airlines',
-  DAL:'Delta Air Lines', AFR:'Air France', DLH:'Lufthansa', IBE:'Iberia',
-  KLM:'KLM', THA:'Thai Airways', TUI:'TUI Airways', TCX:'TUI Airways',
-  NOS:'Norwegian', WZZ:'Wizz Air', FIN:'Finnair', AUA:'Austrian Airlines',
-  SWR:'SWISS', TAP:'TAP Portugal', AZA:'ITA Airways', ELY:'El Al',
-  THY:'Turkish Airlines', SVA:'Saudi Arabian Airlines', ETH:'Ethiopian Airlines',
-  KAL:'Korean Air', ANA:'All Nippon Airways', JAL:'Japan Airlines',
-  CCA:'Air China', CSN:'China Southern', QFA:'Qantas', ANZ:'Air New Zealand',
-  ETD:'Etihad Airways', MSR:'EgyptAir', RAM:'Royal Air Maroc', GFA:'Gulf Air',
-  TRA:'Transavia', VLG:'Vueling', BEL:'Brussels Airlines', SAS:'Scandinavian',
-  PGT:'Pegasus Airlines', BTI:'airBaltic', EIN:'Aer Lingus', LOG:'Loganair',
-  BEE:'Flybe', EXS:'Jet2', MON:'Monarch', TOM:'Thomson Airways',
-  GTI:'Atlas Air', UPS:'UPS Airlines', FDX:'FedEx Express', DHL:'DHL Air',
-  CLX:'Cargolux', BAY:'ASL Airlines', RUK:'Ruk Air',
+// ---- Airline lookup ----
+const AL = {
+  BAW:'British Airways',  EZY:'easyJet',         RYR:'Ryanair',
+  UAE:'Emirates',         VIR:'Virgin Atlantic',  QTR:'Qatar Airways',
+  SIA:'Singapore Airlines', CPA:'Cathay Pacific', AAL:'American Airlines',
+  UAL:'United Airlines',  DAL:'Delta Air Lines',  AFR:'Air France',
+  DLH:'Lufthansa',        IBE:'Iberia',           KLM:'KLM',
+  THA:'Thai Airways',     TUI:'TUI Airways',      TCX:'TUI Airways',
+  NOS:'Norwegian',        WZZ:'Wizz Air',         FIN:'Finnair',
+  AUA:'Austrian Airlines', SWR:'SWISS',           TAP:'TAP Portugal',
+  AZA:'ITA Airways',      ELY:'El Al',            THY:'Turkish Airlines',
+  SVA:'Saudi Arabian Airlines', ETH:'Ethiopian Airlines', KAL:'Korean Air',
+  ANA:'All Nippon Airways', JAL:'Japan Airlines', CCA:'Air China',
+  CSN:'China Southern',   QFA:'Qantas',           ANZ:'Air New Zealand',
+  ETD:'Etihad Airways',   MSR:'EgyptAir',         RAM:'Royal Air Maroc',
+  GFA:'Gulf Air',         TRA:'Transavia',        VLG:'Vueling',
+  BEL:'Brussels Airlines', SAS:'Scandinavian',    PGT:'Pegasus Airlines',
+  BTI:'airBaltic',        EIN:'Aer Lingus',       LOG:'Loganair',
+  EXS:'Jet2',             GTI:'Atlas Air',        FDX:'FedEx Express',
+  UPS:'UPS Airlines',     CLX:'Cargolux',         DHL:'DHL Air',
 };
 
-function getAirline(callsign, country) {
-  const prefix = callsign.replace(/[0-9].*$/, '').replace(/\s/g,'').toUpperCase();
-  return AIRLINES[prefix] || country || prefix;
+function airline(cs) {
+  const p = cs.replace(/[0-9\s].*$/, '').toUpperCase();
+  return AL[p] || null;
 }
 
-// ---- Unit conversions ----
-const mToFt  = m  => m  != null ? Math.round(m  * 3.28084) : null;
-const msToKt = ms => ms != null ? Math.round(ms * 1.94384) : null;
-const msToFpm= ms => ms != null ? Math.round(ms * 196.85)  : null;
+// ---- Helpers ----
+function coordLabel(lat, lon) {
+  return `${Math.abs(lat).toFixed(2)}°${lat>=0?'N':'S'} ${Math.abs(lon).toFixed(2)}°${lon>=0?'E':'W'}`;
+}
 
 function distKm(lat1, lon1, lat2, lon2) {
-  const R = 6371;
-  const dLat = (lat2-lat1)*Math.PI/180, dLon = (lon2-lon1)*Math.PI/180;
-  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  const R=6371, d=Math.PI/180;
+  const dLat=(lat2-lat1)*d, dLon=(lon2-lon1)*d;
+  const a=Math.sin(dLat/2)**2 + Math.cos(lat1*d)*Math.cos(lat2*d)*Math.sin(dLon/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 }
 
-// ---- Flight classification ----
-function classify(f) {
-  const { heading, altFt, vrFpm } = f;
-  const h = heading;
-  const onApproach = h > 235 && h < 305 && altFt < 8500 && altFt > 100 && vrFpm < -150;
-  const departing  = altFt < 7000 && vrFpm > 400;
-  const enRoute    = altFt > 15000;
-  if (onApproach) return 'appr';
-  if (departing)  return 'dept';
-  if (enRoute)    return 'enrt';
+// ---- Reverse geocode (OpenStreetMap Nominatim — free, no key) ----
+async function reverseGeocode(lat, lon) {
+  try {
+    const r = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&zoom=10`,
+      { headers: { 'Accept-Language': 'en' } }
+    );
+    const d = await r.json();
+    const a = d.address || {};
+    const place = a.suburb || a.quarter || a.town || a.village || a.city_district || a.city || '';
+    const post  = (a.postcode || '').split('-')[0].split(' ')[0];
+    if (place) return post ? `${place.toUpperCase()} ${post}` : place.toUpperCase();
+  } catch(e) {}
+  return coordLabel(lat, lon);
+}
+
+// ---- Geolocation ----
+function geolocate() {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) { reject(new Error('Geolocation not supported')); return; }
+    navigator.geolocation.getCurrentPosition(
+      p => resolve({ lat: p.coords.latitude, lon: p.coords.longitude }),
+      e => reject(e),
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 60000 }
+    );
+  });
+}
+
+function geoErrMsg(e) {
+  if (!e) return 'Unknown error';
+  if (e.code === 1) return 'Location permission denied. Please allow location access and try again.';
+  if (e.code === 2) return 'Location unavailable. Try again or enter coordinates manually.';
+  if (e.code === 3) return 'Location request timed out. Check your connection.';
+  return e.message || 'Could not get location.';
+}
+
+// ---- Welcome screen handlers ----
+let manualShown = false;
+
+function toggleManual() {
+  manualShown = !manualShown;
+  document.getElementById('manual-form').classList.toggle('show', manualShown);
+  document.getElementById('btn-manual').textContent =
+    manualShown ? '▲ hide manual entry' : 'enter coordinates manually';
+}
+
+async function onLocateClick() {
+  const btn = document.getElementById('btn-locate');
+  const status = document.getElementById('w-status');
+  const errEl  = document.getElementById('w-error');
+  btn.disabled = true;
+  btn.textContent = 'LOCATING…';
+  errEl.textContent = '';
+  status.textContent = 'REQUESTING LOCATION_';
+  status.style.display = 'block';
+
+  try {
+    const pos = await geolocate();
+    status.textContent = 'LOCATING PLACE NAME_';
+    const label = await reverseGeocode(pos.lat, pos.lon);
+    STORE.saveLoc(pos.lat, pos.lon, label);
+    goLive();
+  } catch(e) {
+    btn.disabled = false;
+    btn.textContent = 'LOCATE ME  ▶';
+    status.style.display = 'none';
+    errEl.textContent = geoErrMsg(e);
+  }
+}
+
+function onManualSubmit() {
+  const lat   = parseFloat(document.getElementById('m-lat').value);
+  const lon   = parseFloat(document.getElementById('m-lon').value);
+  const label = document.getElementById('m-label').value.trim().toUpperCase();
+  const err   = document.getElementById('w-error');
+  if (isNaN(lat) || isNaN(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+    err.textContent = 'Please enter valid latitude and longitude.';
+    return;
+  }
+  err.textContent = '';
+  STORE.saveLoc(lat, lon, label || coordLabel(lat, lon));
+  goLive();
+}
+
+// ---- Transition to live mode ----
+function goLive() {
+  document.getElementById('welcome').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+  document.getElementById('cfg-btn').classList.remove('hidden');
+  updateHeaderLocation();
+  startApp();
+}
+
+function updateHeaderLocation() {
+  const label = STORE.label || coordLabel(STORE.lat, STORE.lon);
+  document.getElementById('h-loc').textContent = `⊙ ${label}`;
+}
+
+// ---- adsb.lol fetch ----
+function classify(hdg, alt, vr) {
+  if (hdg>235 && hdg<305 && alt<8500 && alt>100 && vr<-150) return 'appr';
+  if (alt<7000 && vr>400) return 'dept';
+  if (alt>18000) return 'enrt';
   return 'low';
 }
 
-// ---- Fetch from OpenSky ----
 async function fetchFlights() {
-  const bb  = bboxFromRadius(CFG.lat, CFG.lon, CFG.radiusKm);
-  const url = `https://opensky-network.org/api/states/all?lamin=${bb.lamin.toFixed(4)}&lomin=${bb.lomin.toFixed(4)}&lamax=${bb.lamax.toFixed(4)}&lomax=${bb.lomax.toFixed(4)}`;
-
-  const headers = {};
-  if (CFG.user && CFG.pass) {
-    headers['Authorization'] = 'Basic ' + btoa(CFG.user + ':' + CFG.pass);
-  }
-
-  const res = await fetch(url, { headers, cache: 'no-store' });
-  if (!res.ok) throw new Error('OpenSky ' + res.status);
+  const url = `https://api.adsb.lol/v2/lat/${STORE.lat}/lon/${STORE.lon}/dist/${STORE.dist}`;
+  const res = await fetch(url, { cache:'no-store' });
+  if (!res.ok) throw new Error('adsb.lol ' + res.status);
   const data = await res.json();
-  if (!data.states) return [];
+  const ac = data.ac || data.aircraft || [];
+  if (!ac.length) return [];
 
-  return data.states
-    .filter(s => !s[8])
-    .filter(s => s[1]?.trim().length > 0)
-    .filter(s => s[7] != null && s[7] > 50)
-    .map(s => {
-      const altFt = mToFt(s[7]);
-      const vrFpm = msToFpm(s[11]) ?? 0;
-      const f = {
-        icao:     s[0],
-        callsign: s[1].trim().toUpperCase(),
-        country:  s[2],
-        lat:      s[6],
-        lon:      s[5],
-        altFt,
-        speedKt:  msToKt(s[9]),
-        heading:  Math.round(s[10] ?? 0),
-        vrFpm,
-        distKm:   Math.round(distKm(CFG.lat, CFG.lon, s[6], s[5])),
+  return ac
+    .filter(a => {
+      if (a.alt_baro === 'ground' || a.on_ground) return false;
+      return typeof a.alt_baro === 'number' && a.alt_baro > 100 && a.lat && a.lon && a.flight?.trim();
+    })
+    .map(a => {
+      const cs  = a.flight.trim().toUpperCase();
+      const alt = Math.round(a.alt_baro);
+      const spd = typeof a.gs        === 'number' ? Math.round(a.gs)        : null;
+      const vr  = typeof a.baro_rate === 'number' ? Math.round(a.baro_rate) : 0;
+      const hdg = Math.round(a.track || 0);
+      const d   = Math.round(distKm(STORE.lat, STORE.lon, a.lat, a.lon));
+      return {
+        cs, alt, spd, vr, hdg, distKm: d,
+        cls:  classify(hdg, alt, vr),
+        disp: airline(cs) || a.r || a.t || cs.slice(0,3),
+        type: a.t || '',
       };
-      f.type    = classify(f);
-      f.display = getAirline(f.callsign, f.country);
-      return f;
     })
-    .sort((a, b) => {
-      const order = { appr:0, dept:1, low:2, enrt:3 };
-      const oa = order[a.type] ?? 4, ob = order[b.type] ?? 4;
-      return oa !== ob ? oa - ob : a.distKm - b.distKm;
+    .sort((a,b) => {
+      const o={appr:0,dept:1,low:2,enrt:3};
+      const oa=o[a.cls]??4, ob=o[b.cls]??4;
+      return oa!==ob ? oa-ob : a.distKm-b.distKm;
     })
-    .slice(0, CFG.maxRows);
+    .slice(0, STORE.rows);
 }
 
 // ---- Render ----
-function vrClass(vr) {
-  if (vr >  200) return 'clr-climb';
-  if (vr < -200) return 'clr-desc';
-  return 'clr-level';
-}
-
-function vrArrow(vr) {
-  if (vr >  200) return '▲';
-  if (vr < -200) return '▼';
-  return '▬';
-}
-
-function fmtAlt(ft) {
-  if (ft == null) return '---';
-  return ft.toLocaleString() + 'ft';
-}
-
-function fmtVr(fpm) {
-  if (Math.abs(fpm) < 100) return 'level';
-  return (fpm > 0 ? '+' : '') + fpm.toLocaleString() + 'fpm';
-}
-
-function altClass(ft) {
-  if (ft == null) return 'clr-amber';
-  if (ft < 2500)  return 'clr-low';
-  if (ft > 25000) return 'clr-hi';
-  return 'clr-amber';
-}
-
-function badge(type) {
-  if (type === 'appr') return '<span class="f-badge badge-appr">ILS APPR</span>';
-  if (type === 'dept') return '<span class="f-badge badge-dept">DEPARTING</span>';
-  if (type === 'enrt') return '<span class="f-badge badge-enrte">EN ROUTE</span>';
-  return '';
-}
+const vrCls   = v => v>200  ? 'c-climb' : v<-200 ? 'c-desc' : 'c-level';
+const vrArrow = v => v>200  ? '▲' : v<-200 ? '▼' : '▬';
+const altCls  = f => f<2500 ? 'c-red' : f>25000 ? 'c-white' : 'c-amber';
+const fmtAlt  = f => f.toLocaleString() + 'ft';
+const fmtSpd  = k => k != null ? k + 'kt' : '---';
+const fmtVr   = v => Math.abs(v)<100 ? 'level' : (v>0?'+':'') + v.toLocaleString() + 'fpm';
+const BADGES  = {
+  appr: '<span class="f-badge b-appr">ILS APPR</span>',
+  dept: '<span class="f-badge b-dept">DEPARTING</span>',
+  enrt: '<span class="f-badge b-enrt">EN ROUTE</span>',
+  low:  '',
+};
 
 function renderFlights(flights) {
   const board = document.getElementById('board');
-
   if (!flights.length) {
     board.innerHTML = `<div id="empty">
-      <div class="empty-main">NO AIRCRAFT IN RANGE</div>
-      <div class="empty-sub">radius ${CFG.radiusKm}km · checking every ${CFG.refreshMs/1000}s</div>
+      <div class="e-main">NO AIRCRAFT IN RANGE</div>
+      <div class="e-sub">r=${STORE.dist}nm · refreshing every ${STORE.refresh/1000}s</div>
     </div>`;
     return;
   }
-
   board.innerHTML = flights.map(f => {
-    const vc = vrClass(f.vrFpm);
-    return `<div class="flight-row">
-      <span class="f-cs">${f.callsign}</span>
-      <span class="f-name">${f.display}${badge(f.type)}</span>
+    const vc  = vrCls(f.vr);
+    const tBadge = f.type ? `<span class="f-badge b-type">${f.type}</span>` : '';
+    return `<div class="row">
+      <span class="f-cs">${f.cs}</span>
+      <span class="f-name">${f.disp}${BADGES[f.cls]||''}${tBadge}</span>
       <div class="f-metrics">
         <div class="f-m">
           <span class="f-lbl">ALT</span>
-          <span class="f-val ${altClass(f.altFt)}">${fmtAlt(f.altFt)}</span>
+          <span class="f-val ${altCls(f.alt)}">${fmtAlt(f.alt)}</span>
         </div>
         <div class="f-m">
           <span class="f-lbl">SPD</span>
-          <span class="f-val clr-amber">${f.speedKt != null ? f.speedKt+'kt' : '---'}</span>
+          <span class="f-val c-amber">${fmtSpd(f.spd)}</span>
         </div>
         <div class="f-m">
           <span class="f-lbl">VR</span>
-          <span class="f-val ${vc}">${fmtVr(f.vrFpm)}</span>
+          <span class="f-val ${vc}">${fmtVr(f.vr)}</span>
         </div>
-        <span class="f-arrow ${vc}">${vrArrow(f.vrFpm)}</span>
+        <span class="f-arrow ${vc}">${vrArrow(f.vr)}</span>
         <span class="f-dist">${f.distKm}km</span>
       </div>
     </div>`;
@@ -501,114 +710,147 @@ function renderFlights(flights) {
 
 // ---- Clock ----
 function tick() {
-  const n = new Date();
-  const p = n => String(n).padStart(2,'0');
+  const n=new Date(), p=v=>String(v).padStart(2,'0');
   document.getElementById('h-clock').textContent =
     `${p(n.getUTCHours())}:${p(n.getUTCMinutes())}:${p(n.getUTCSeconds())} UTC`;
 }
 
 // ---- Status ----
-function setOk(count) {
-  const dot = document.getElementById('live-dot');
-  dot.className = 'live-dot ok';
+function setOk(n) {
+  document.getElementById('live-dot').className = 'dot ok';
   document.getElementById('h-live').textContent = 'LIVE';
   document.getElementById('h-live').style.color = '#446600';
-  document.getElementById('h-count').textContent = `· ${count} aircraft`;
-  const n = new Date(), p = n => String(n).padStart(2,'0');
-  document.getElementById('f-update').textContent =
-    `updated ${p(n.getUTCHours())}:${p(n.getUTCMinutes())}:${p(n.getUTCSeconds())} UTC`;
+  document.getElementById('h-count').textContent = `· ${n} aircraft`;
+  const d=new Date(), p=v=>String(v).padStart(2,'0');
+  document.getElementById('f-upd').textContent =
+    `updated ${p(d.getUTCHours())}:${p(d.getUTCMinutes())}:${p(d.getUTCSeconds())} UTC`;
 }
-
 function setErr(msg) {
-  document.getElementById('live-dot').className = 'live-dot err';
+  document.getElementById('live-dot').className = 'dot err';
   document.getElementById('h-live').textContent = 'ERR';
   document.getElementById('h-live').style.color = '#664400';
   document.getElementById('h-count').textContent = '';
-  document.getElementById('f-update').textContent = msg;
+  document.getElementById('f-upd').textContent = msg;
 }
 
-// ---- Main loop ----
-let firstLoad = true;
+// ---- Main refresh ----
+let refreshTimer = null;
 
 async function refresh() {
   try {
     const flights = await fetchFlights();
-    if (firstLoad) {
-      const el = document.getElementById('loading');
-      el.classList.add('fade');
-      setTimeout(() => el.classList.add('hidden'), 600);
-      firstLoad = false;
-    }
     renderFlights(flights);
     setOk(flights.length);
-  } catch(err) {
-    setErr(err.message);
-    if (firstLoad) {
-      document.getElementById('l-msg').textContent = 'API ERROR · RETRYING_';
-    }
-    console.error('FlightWall:', err);
+  } catch(e) {
+    setErr(e.message);
+    console.error('FlightWall:', e);
   }
 }
 
-// ---- Screen Wake Lock ----
-async function acquireWakeLock() {
-  try {
-    await navigator.wakeLock.request('screen');
-    document.addEventListener('visibilitychange', async () => {
-      if (document.visibilityState === 'visible') {
-        try { await navigator.wakeLock.request('screen'); } catch(e) {}
-      }
-    });
-  } catch(e) { /* not supported — use Guided Access on iPad instead */ }
+function startApp() {
+  if (refreshTimer) clearInterval(refreshTimer);
+  refresh();
+  refreshTimer = setInterval(refresh, STORE.refresh);
 }
 
 // ---- Settings panel ----
 function openSettings() {
-  document.getElementById('cfg-label').value  = CFG.label;
-  document.getElementById('cfg-lat').value    = CFG.lat;
-  document.getElementById('cfg-lon').value    = CFG.lon;
-  document.getElementById('cfg-radius').value = CFG.radiusKm;
-  document.getElementById('cfg-user').value   = CFG.user;
-  document.getElementById('cfg-pass').value   = CFG.pass;
-  document.getElementById('settings-panel').classList.remove('hidden');
+  document.getElementById('sp-cur-loc').textContent =
+    `Current: ${STORE.label || coordLabel(STORE.lat, STORE.lon)}`;
+  document.getElementById('sp-lat').value   = STORE.lat;
+  document.getElementById('sp-lon').value   = STORE.lon;
+  document.getElementById('sp-label').value = STORE.label;
+  document.getElementById('sp-dist').value  = STORE.dist;
+  document.getElementById('sp-rows').value  = STORE.rows;
+  document.getElementById('sp-loc-status').textContent = '';
+  document.getElementById('settings').classList.remove('hidden');
 }
 
-function closeSettings() {
-  document.getElementById('settings-panel').classList.add('hidden');
+function closeSettings() { document.getElementById('settings').classList.add('hidden'); }
+
+async function spGeolocate() {
+  const status = document.getElementById('sp-loc-status');
+  status.textContent = 'REQUESTING GPS…';
+  try {
+    const pos = await geolocate();
+    status.textContent = 'GETTING PLACE NAME…';
+    const label = await reverseGeocode(pos.lat, pos.lon);
+    STORE.saveLoc(pos.lat, pos.lon, label);
+    document.getElementById('sp-lat').value   = pos.lat;
+    document.getElementById('sp-lon').value   = pos.lon;
+    document.getElementById('sp-label').value = label;
+    document.getElementById('sp-cur-loc').textContent = `Current: ${label}`;
+    status.textContent = `✓ Updated to ${label}`;
+    updateHeaderLocation();
+    refresh();
+  } catch(e) {
+    status.textContent = geoErrMsg(e);
+  }
 }
 
-function saveSettings() {
-  CFG = {
-    ...CFG,
-    label:    document.getElementById('cfg-label').value  || CFG.label,
-    lat:      parseFloat(document.getElementById('cfg-lat').value)    || CFG.lat,
-    lon:      parseFloat(document.getElementById('cfg-lon').value)    || CFG.lon,
-    radiusKm: parseInt(document.getElementById('cfg-radius').value)   || CFG.radiusKm,
-    user:     document.getElementById('cfg-user').value,
-    pass:     document.getElementById('cfg-pass').value,
-  };
-  saveCfg(CFG);
-  document.getElementById('h-loc').textContent =
-    `${CFG.label} · ${CFG.lat.toFixed(4)}°N ${Math.abs(CFG.lon).toFixed(4)}°${CFG.lon < 0 ? 'W':'E'}`;
-  closeSettings();
-  firstLoad = true;
-  document.getElementById('loading').classList.remove('hidden','fade');
+function spManualSave() {
+  const lat   = parseFloat(document.getElementById('sp-lat').value);
+  const lon   = parseFloat(document.getElementById('sp-lon').value);
+  const label = document.getElementById('sp-label').value.trim().toUpperCase();
+  if (isNaN(lat)||isNaN(lon)) {
+    document.getElementById('sp-loc-status').textContent = 'Invalid coordinates.';
+    return;
+  }
+  STORE.saveLoc(lat, lon, label || coordLabel(lat, lon));
+  document.getElementById('sp-cur-loc').textContent = `Current: ${STORE.label}`;
+  document.getElementById('sp-loc-status').textContent = '✓ Location saved';
+  updateHeaderLocation();
   refresh();
 }
 
-// ---- Service worker ----
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js').catch(() => {});
+function spSaveDisplay() {
+  const dist = parseInt(document.getElementById('sp-dist').value) || STORE.dist;
+  const rows = parseInt(document.getElementById('sp-rows').value) || STORE.rows;
+  STORE.saveDisplay(dist, rows);
+  closeSettings();
+  startApp();
 }
 
+function spForgetLocation() {
+  if (!confirm('Clear saved location and return to the welcome screen?')) return;
+  STORE.forget();
+  if (refreshTimer) clearInterval(refreshTimer);
+  document.getElementById('settings').classList.add('hidden');
+  document.getElementById('app').classList.add('hidden');
+  document.getElementById('cfg-btn').classList.add('hidden');
+  document.getElementById('w-status').style.display = 'none';
+  document.getElementById('w-error').textContent = '';
+  document.getElementById('btn-locate').disabled = false;
+  document.getElementById('btn-locate').textContent = 'LOCATE ME  ▶';
+  document.getElementById('welcome').classList.remove('hidden');
+}
+
+// ---- Wake Lock ----
+async function wakeLock() {
+  try {
+    await navigator.wakeLock.request('screen');
+    document.addEventListener('visibilitychange', async () => {
+      if (document.visibilityState === 'visible')
+        try { await navigator.wakeLock.request('screen'); } catch(e) {}
+    });
+  } catch(e) {}
+}
+
+// ---- Service worker ----
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+
 // ---- Boot ----
-document.getElementById('h-loc').textContent =
-  `${CFG.label} · ${CFG.lat.toFixed(4)}°N ${Math.abs(CFG.lon).toFixed(4)}°${CFG.lon < 0 ? 'W':'E'}`;
 tick();
 setInterval(tick, 1000);
-refresh();
-setInterval(refresh, CFG.refreshMs);
-acquireWakeLock();
+wakeLock();
+
+if (STORE.hasLocation()) {
+  // Returning user — go straight to live view
+  goLive();
+} else {
+  // First time — show welcome/location screen
+  // (nothing to do, welcome screen is visible by default)
+}
 </script>
 </body>
 </html>
