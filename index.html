@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-fullscreen">
+  <meta name="apple-mobile-web-app-title" content="FlightWall">
+  <link rel="manifest" href="manifest.json">
+  <title>FlightWall · Barnes</title>
+  <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --amber:     #FFB200;
+      --dim-amber: #554400;
+      --green:     #00E87A;
+      --red:       #FF5050;
+      --white:     #D8D8D8;
+      --muted:     #3A3200;
+      --bg:        #020202;
+      --row-alt:   rgba(18,16,0,0.5);
+      --rule:      #141200;
+    }
+
+    html, body {
+      width: 100%; height: 100%;
+      background: var(--bg);
+      color: var(--amber);
+      font-family: 'VT323', monospace;
+      overflow: hidden;
+      -webkit-user-select: none; user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body::after {
+      content: '';
+      position: fixed; inset: 0;
+      background-image: radial-gradient(circle, #0d0b04 1.5px, transparent 1.5px);
+      background-size: 5px 5px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    #loading {
+      position: fixed; inset: 0;
+      background: var(--bg);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 20px;
+      z-index: 200;
+      transition: opacity 0.5s;
+    }
+    #loading.fade { opacity: 0; pointer-events: none; }
+    #loading.hidden { display: none; }
+
+    .l-title { font-size: 16px; color: var(--dim-amber); letter-spacing: 6px; }
+    .l-msg   { font-size: 32px; color: var(--amber); letter-spacing: 3px; }
+    .l-blink { animation: blink 1s step-end infinite; }
+    @keyframes blink { 50% { opacity: 0; } }
+
+    #app {
+      position: relative; z-index: 1;
+      display: flex; flex-direction: column;
+      height: 100vh; height: 100dvh;
+      padding: env(safe-area-inset-top,0px) env(safe-area-inset-right,0px)
+               env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px);
+    }
+
+    #header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 16px;
+      height: 46px;
+      border-bottom: 1px solid var(--rule);
+      flex-shrink: 0;
+    }
+    .h-loc   { font-size: clamp(13px,1.8vw,22px); color: var(--amber); letter-spacing: 1px; }
+    .h-mid   { display: flex; align-items: center; gap: 10px; }
+    .h-clock { font-size: clamp(18px,2.5vw,30px); color: var(--amber); }
+
+    .live-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #00aa44; flex-shrink: 0;
+    }
+    .live-dot.err { background: #aa3300; animation: none; }
+    .live-dot.ok  { animation: pulse 2.4s ease-in-out infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+    .h-live  { font-size: clamp(14px,1.8vw,22px); color: #446600; }
+    .h-count { font-size: clamp(12px,1.5vw,18px); color: #333300; }
+
+    #board {
+      flex: 1; display: flex; flex-direction: column;
+      overflow: hidden;
+    }
+
+    .flight-row {
+      display: flex; align-items: center;
+      padding: 0 14px 0 10px;
+      border-bottom: 1px solid var(--rule);
+      flex: 1; min-height: 0;
+      gap: 0;
+      position: relative;
+    }
+    .flight-row:nth-child(odd) { background: var(--row-alt); }
+
+    .f-cs {
+      font-size: clamp(20px, 3.8vh, 42px);
+      color: var(--amber);
+      width: clamp(100px, 11vw, 155px);
+      flex-shrink: 0;
+      letter-spacing: 1px;
+      line-height: 1;
+    }
+
+    .f-name {
+      font-size: clamp(16px, 2.8vh, 30px);
+      color: var(--white);
+      flex: 1; min-width: 0;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      padding-right: 8px;
+      line-height: 1;
+    }
+
+    .f-badge {
+      display: inline-block;
+      font-size: clamp(9px, 1.2vh, 14px);
+      padding: 1px 6px;
+      border-radius: 3px;
+      margin-left: 8px;
+      vertical-align: middle;
+      flex-shrink: 0;
+    }
+    .badge-appr  { background:#1a0800; color:#FF8822; border:1px solid #442200; }
+    .badge-dept  { background:#041000; color:#66BB00; border:1px solid #224400; }
+    .badge-enrte { background:#080814; color:#4488FF; border:1px solid #223366; }
+
+    .f-metrics {
+      display: flex; align-items: center;
+      gap: clamp(10px, 2vw, 28px);
+      flex-shrink: 0;
+    }
+
+    .f-m {
+      display: flex; flex-direction: column; align-items: flex-end;
+      min-width: clamp(60px, 8vw, 110px);
+    }
+    .f-lbl { font-size: clamp(9px,1.1vh,14px); color: var(--muted); line-height:1; }
+    .f-val { font-size: clamp(16px,2.8vh,34px); line-height:1.05; }
+
+    .f-arrow {
+      font-size: clamp(20px,3.6vh,44px);
+      width: clamp(28px,3.5vw,48px);
+      text-align: center;
+      flex-shrink: 0;
+      line-height: 1;
+    }
+
+    .f-dist {
+      font-size: clamp(12px,1.8vh,22px);
+      color: var(--muted);
+      width: clamp(36px,4.5vw,58px);
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    .clr-climb { color: var(--green); }
+    .clr-desc  { color: var(--red); }
+    .clr-level { color: #666600; }
+    .clr-amber { color: var(--amber); }
+    .clr-hi    { color: var(--white); }
+    .clr-low   { color: var(--red); }
+
+    #empty {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 12px;
+    }
+    .empty-main { font-size: 32px; color: var(--muted); letter-spacing: 4px; }
+    .empty-sub  { font-size: 18px; color: #222100; letter-spacing: 2px; }
+
+    #footer {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 14px;
+      height: 30px;
+      border-top: 1px solid var(--rule);
+      flex-shrink: 0;
+      font-size: clamp(10px, 1.4vh, 15px);
+      color: #252100;
+    }
+    #footer a { color: #252100; text-decoration: none; }
+
+    #settings-btn {
+      position: fixed; bottom: 36px; right: 16px;
+      z-index: 50;
+      background: var(--bg); border: 1px solid #2a2800;
+      color: #333200; font-family: 'VT323', monospace;
+      font-size: 14px; padding: 4px 10px; border-radius: 4px;
+      cursor: pointer; opacity: 0.4;
+      transition: opacity 0.2s;
+    }
+    #settings-btn:hover { opacity: 1; }
+
+    #settings-panel {
+      position: fixed; inset: 0; z-index: 100;
+      background: rgba(0,0,0,0.9);
+      display: flex; align-items: center; justify-content: center;
+    }
+    #settings-panel.hidden { display: none; }
+    .sp-box {
+      background: #0a0900; border: 1px solid #2a2800;
+      border-radius: 8px; padding: 24px; width: 380px; max-width: 90vw;
+    }
+    .sp-title { font-size: 24px; color: var(--amber); margin-bottom: 16px; letter-spacing: 2px; }
+    .sp-row   { margin-bottom: 14px; }
+    .sp-label { font-size: 14px; color: #666600; display: block; margin-bottom: 4px; }
+    .sp-input {
+      width: 100%; background: #0f0e00; border: 1px solid #2a2800;
+      color: var(--amber); font-family: 'VT323', monospace; font-size: 18px;
+      padding: 6px 10px; border-radius: 4px; outline: none;
+    }
+    .sp-note  { font-size: 12px; color: #333200; margin-top: 6px; }
+    .sp-btn   {
+      background: #1a1800; border: 1px solid #3a3600; color: var(--amber);
+      font-family: 'VT323', monospace; font-size: 20px; padding: 8px 20px;
+      border-radius: 4px; cursor: pointer; margin-right: 10px; margin-top: 8px;
+    }
+    .sp-btn:hover { background: #252300; }
+    .sp-close { color: #444400; }
+  </style>
+</head>
+<body>
+
+<div id="loading">
+  <div class="l-title">FLIGHTWALL · BARNES SW13</div>
+  <div class="l-msg l-blink" id="l-msg">SCANNING AIRSPACE_</div>
+</div>
+
+<div id="app">
+  <div id="header">
+    <span class="h-loc" id="h-loc">BARNES SW13 · 51.47°N 0.24°W</span>
+    <div class="h-mid">
+      <div class="live-dot ok" id="live-dot"></div>
+      <span class="h-live" id="h-live">LIVE</span>
+      <span class="h-count" id="h-count"></span>
+    </div>
+    <span class="h-clock" id="h-clock">--:--:-- UTC</span>
+  </div>
+
+  <div id="board"></div>
+
+  <div id="footer">
+    <span>OpenSky Network · <a href="https://opensky-network.org">opensky-network.org</a></span>
+    <span id="f-update">--</span>
+  </div>
+</div>
+
+<button id="settings-btn" onclick="openSettings()">⚙ config</button>
+
+<div id="settings-panel" class="hidden">
+  <div class="sp-box">
+    <div class="sp-title">⚙ FLIGHTWALL CONFIG</div>
+
+    <div class="sp-row">
+      <label class="sp-label">Location label</label>
+      <input class="sp-input" id="cfg-label" value="">
+      <p class="sp-note">Shown in the header</p>
+    </div>
+    <div class="sp-row">
+      <label class="sp-label">Latitude</label>
+      <input class="sp-input" id="cfg-lat" type="number" step="0.0001">
+    </div>
+    <div class="sp-row">
+      <label class="sp-label">Longitude</label>
+      <input class="sp-input" id="cfg-lon" type="number" step="0.0001">
+    </div>
+    <div class="sp-row">
+      <label class="sp-label">Search radius (km)</label>
+      <input class="sp-input" id="cfg-radius" type="number" step="5">
+    </div>
+    <div class="sp-row">
+      <label class="sp-label">OpenSky username <span style="color:#333200">(optional — free at opensky-network.org)</span></label>
+      <input class="sp-input" id="cfg-user" autocomplete="username">
+      <p class="sp-note">Registered users get higher rate limits — needed for 24/7 use</p>
+    </div>
+    <div class="sp-row">
+      <label class="sp-label">OpenSky password</label>
+      <input class="sp-input" id="cfg-pass" type="password" autocomplete="current-password">
+    </div>
+
+    <button class="sp-btn" onclick="saveSettings()">SAVE + RESTART</button>
+    <button class="sp-btn sp-close" onclick="closeSettings()">CANCEL</button>
+  </div>
+</div>
+
+<script>
+// ============================================================
+//  FlightWall Barnes · PWA
+//  Real-time ADS-B via OpenSky Network
+//  github.com/AxisNimble/TheFlightWall_OSS inspired
+// ============================================================
+
+const DEFAULT_CFG = {
+  lat:      51.4694,
+  lon:      -0.2405,
+  label:    'BARNES SW13',
+  radiusKm: 40,
+  user:     '',
+  pass:     '',
+  refreshMs: 12000,
+  maxRows:  8,
+};
+
+let CFG = loadCfg();
+
+function loadCfg() {
+  try {
+    const s = localStorage.getItem('fw_cfg');
+    return s ? { ...DEFAULT_CFG, ...JSON.parse(s) } : { ...DEFAULT_CFG };
+  } catch(e) { return { ...DEFAULT_CFG }; }
+}
+
+function saveCfg(c) {
+  try { localStorage.setItem('fw_cfg', JSON.stringify(c)); } catch(e) {}
+}
+
+function bboxFromRadius(lat, lon, km) {
+  const dLat = km / 111;
+  const dLon = km / (111 * Math.cos(lat * Math.PI / 180));
+  return { lamin: lat-dLat, lamax: lat+dLat, lomin: lon-dLon, lomax: lon+dLon };
+}
+
+// ---- Airline lookup (ICAO 3-letter prefix → name) ----
+const AIRLINES = {
+  BAW:'British Airways', EZY:'easyJet', RYR:'Ryanair', UAE:'Emirates',
+  VIR:'Virgin Atlantic', QTR:'Qatar Airways', SIA:'Singapore Airlines',
+  CPA:'Cathay Pacific', AAL:'American Airlines', UAL:'United Airlines',
+  DAL:'Delta Air Lines', AFR:'Air France', DLH:'Lufthansa', IBE:'Iberia',
+  KLM:'KLM', THA:'Thai Airways', TUI:'TUI Airways', TCX:'TUI Airways',
+  NOS:'Norwegian', WZZ:'Wizz Air', FIN:'Finnair', AUA:'Austrian Airlines',
+  SWR:'SWISS', TAP:'TAP Portugal', AZA:'ITA Airways', ELY:'El Al',
+  THY:'Turkish Airlines', SVA:'Saudi Arabian Airlines', ETH:'Ethiopian Airlines',
+  KAL:'Korean Air', ANA:'All Nippon Airways', JAL:'Japan Airlines',
+  CCA:'Air China', CSN:'China Southern', QFA:'Qantas', ANZ:'Air New Zealand',
+  ETD:'Etihad Airways', MSR:'EgyptAir', RAM:'Royal Air Maroc', GFA:'Gulf Air',
+  TRA:'Transavia', VLG:'Vueling', BEL:'Brussels Airlines', SAS:'Scandinavian',
+  PGT:'Pegasus Airlines', BTI:'airBaltic', EIN:'Aer Lingus', LOG:'Loganair',
+  BEE:'Flybe', EXS:'Jet2', MON:'Monarch', TOM:'Thomson Airways',
+  GTI:'Atlas Air', UPS:'UPS Airlines', FDX:'FedEx Express', DHL:'DHL Air',
+  CLX:'Cargolux', BAY:'ASL Airlines', RUK:'Ruk Air',
+};
+
+function getAirline(callsign, country) {
+  const prefix = callsign.replace(/[0-9].*$/, '').replace(/\s/g,'').toUpperCase();
+  return AIRLINES[prefix] || country || prefix;
+}
+
+// ---- Unit conversions ----
+const mToFt  = m  => m  != null ? Math.round(m  * 3.28084) : null;
+const msToKt = ms => ms != null ? Math.round(ms * 1.94384) : null;
+const msToFpm= ms => ms != null ? Math.round(ms * 196.85)  : null;
+
+function distKm(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const dLat = (lat2-lat1)*Math.PI/180, dLon = (lon2-lon1)*Math.PI/180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+// ---- Flight classification ----
+function classify(f) {
+  const { heading, altFt, vrFpm } = f;
+  const h = heading;
+  const onApproach = h > 235 && h < 305 && altFt < 8500 && altFt > 100 && vrFpm < -150;
+  const departing  = altFt < 7000 && vrFpm > 400;
+  const enRoute    = altFt > 15000;
+  if (onApproach) return 'appr';
+  if (departing)  return 'dept';
+  if (enRoute)    return 'enrt';
+  return 'low';
+}
+
+// ---- Fetch from OpenSky ----
+async function fetchFlights() {
+  const bb  = bboxFromRadius(CFG.lat, CFG.lon, CFG.radiusKm);
+  const url = `https://opensky-network.org/api/states/all?lamin=${bb.lamin.toFixed(4)}&lomin=${bb.lomin.toFixed(4)}&lamax=${bb.lamax.toFixed(4)}&lomax=${bb.lomax.toFixed(4)}`;
+
+  const headers = {};
+  if (CFG.user && CFG.pass) {
+    headers['Authorization'] = 'Basic ' + btoa(CFG.user + ':' + CFG.pass);
+  }
+
+  const res = await fetch(url, { headers, cache: 'no-store' });
+  if (!res.ok) throw new Error('OpenSky ' + res.status);
+  const data = await res.json();
+  if (!data.states) return [];
+
+  return data.states
+    .filter(s => !s[8])
+    .filter(s => s[1]?.trim().length > 0)
+    .filter(s => s[7] != null && s[7] > 50)
+    .map(s => {
+      const altFt = mToFt(s[7]);
+      const vrFpm = msToFpm(s[11]) ?? 0;
+      const f = {
+        icao:     s[0],
+        callsign: s[1].trim().toUpperCase(),
+        country:  s[2],
+        lat:      s[6],
+        lon:      s[5],
+        altFt,
+        speedKt:  msToKt(s[9]),
+        heading:  Math.round(s[10] ?? 0),
+        vrFpm,
+        distKm:   Math.round(distKm(CFG.lat, CFG.lon, s[6], s[5])),
+      };
+      f.type    = classify(f);
+      f.display = getAirline(f.callsign, f.country);
+      return f;
+    })
+    .sort((a, b) => {
+      const order = { appr:0, dept:1, low:2, enrt:3 };
+      const oa = order[a.type] ?? 4, ob = order[b.type] ?? 4;
+      return oa !== ob ? oa - ob : a.distKm - b.distKm;
+    })
+    .slice(0, CFG.maxRows);
+}
+
+// ---- Render ----
+function vrClass(vr) {
+  if (vr >  200) return 'clr-climb';
+  if (vr < -200) return 'clr-desc';
+  return 'clr-level';
+}
+
+function vrArrow(vr) {
+  if (vr >  200) return '▲';
+  if (vr < -200) return '▼';
+  return '▬';
+}
+
+function fmtAlt(ft) {
+  if (ft == null) return '---';
+  return ft.toLocaleString() + 'ft';
+}
+
+function fmtVr(fpm) {
+  if (Math.abs(fpm) < 100) return 'level';
+  return (fpm > 0 ? '+' : '') + fpm.toLocaleString() + 'fpm';
+}
+
+function altClass(ft) {
+  if (ft == null) return 'clr-amber';
+  if (ft < 2500)  return 'clr-low';
+  if (ft > 25000) return 'clr-hi';
+  return 'clr-amber';
+}
+
+function badge(type) {
+  if (type === 'appr') return '<span class="f-badge badge-appr">ILS APPR</span>';
+  if (type === 'dept') return '<span class="f-badge badge-dept">DEPARTING</span>';
+  if (type === 'enrt') return '<span class="f-badge badge-enrte">EN ROUTE</span>';
+  return '';
+}
+
+function renderFlights(flights) {
+  const board = document.getElementById('board');
+
+  if (!flights.length) {
+    board.innerHTML = `<div id="empty">
+      <div class="empty-main">NO AIRCRAFT IN RANGE</div>
+      <div class="empty-sub">radius ${CFG.radiusKm}km · checking every ${CFG.refreshMs/1000}s</div>
+    </div>`;
+    return;
+  }
+
+  board.innerHTML = flights.map(f => {
+    const vc = vrClass(f.vrFpm);
+    return `<div class="flight-row">
+      <span class="f-cs">${f.callsign}</span>
+      <span class="f-name">${f.display}${badge(f.type)}</span>
+      <div class="f-metrics">
+        <div class="f-m">
+          <span class="f-lbl">ALT</span>
+          <span class="f-val ${altClass(f.altFt)}">${fmtAlt(f.altFt)}</span>
+        </div>
+        <div class="f-m">
+          <span class="f-lbl">SPD</span>
+          <span class="f-val clr-amber">${f.speedKt != null ? f.speedKt+'kt' : '---'}</span>
+        </div>
+        <div class="f-m">
+          <span class="f-lbl">VR</span>
+          <span class="f-val ${vc}">${fmtVr(f.vrFpm)}</span>
+        </div>
+        <span class="f-arrow ${vc}">${vrArrow(f.vrFpm)}</span>
+        <span class="f-dist">${f.distKm}km</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ---- Clock ----
+function tick() {
+  const n = new Date();
+  const p = n => String(n).padStart(2,'0');
+  document.getElementById('h-clock').textContent =
+    `${p(n.getUTCHours())}:${p(n.getUTCMinutes())}:${p(n.getUTCSeconds())} UTC`;
+}
+
+// ---- Status ----
+function setOk(count) {
+  const dot = document.getElementById('live-dot');
+  dot.className = 'live-dot ok';
+  document.getElementById('h-live').textContent = 'LIVE';
+  document.getElementById('h-live').style.color = '#446600';
+  document.getElementById('h-count').textContent = `· ${count} aircraft`;
+  const n = new Date(), p = n => String(n).padStart(2,'0');
+  document.getElementById('f-update').textContent =
+    `updated ${p(n.getUTCHours())}:${p(n.getUTCMinutes())}:${p(n.getUTCSeconds())} UTC`;
+}
+
+function setErr(msg) {
+  document.getElementById('live-dot').className = 'live-dot err';
+  document.getElementById('h-live').textContent = 'ERR';
+  document.getElementById('h-live').style.color = '#664400';
+  document.getElementById('h-count').textContent = '';
+  document.getElementById('f-update').textContent = msg;
+}
+
+// ---- Main loop ----
+let firstLoad = true;
+
+async function refresh() {
+  try {
+    const flights = await fetchFlights();
+    if (firstLoad) {
+      const el = document.getElementById('loading');
+      el.classList.add('fade');
+      setTimeout(() => el.classList.add('hidden'), 600);
+      firstLoad = false;
+    }
+    renderFlights(flights);
+    setOk(flights.length);
+  } catch(err) {
+    setErr(err.message);
+    if (firstLoad) {
+      document.getElementById('l-msg').textContent = 'API ERROR · RETRYING_';
+    }
+    console.error('FlightWall:', err);
+  }
+}
+
+// ---- Screen Wake Lock ----
+async function acquireWakeLock() {
+  try {
+    await navigator.wakeLock.request('screen');
+    document.addEventListener('visibilitychange', async () => {
+      if (document.visibilityState === 'visible') {
+        try { await navigator.wakeLock.request('screen'); } catch(e) {}
+      }
+    });
+  } catch(e) { /* not supported — use Guided Access on iPad instead */ }
+}
+
+// ---- Settings panel ----
+function openSettings() {
+  document.getElementById('cfg-label').value  = CFG.label;
+  document.getElementById('cfg-lat').value    = CFG.lat;
+  document.getElementById('cfg-lon').value    = CFG.lon;
+  document.getElementById('cfg-radius').value = CFG.radiusKm;
+  document.getElementById('cfg-user').value   = CFG.user;
+  document.getElementById('cfg-pass').value   = CFG.pass;
+  document.getElementById('settings-panel').classList.remove('hidden');
+}
+
+function closeSettings() {
+  document.getElementById('settings-panel').classList.add('hidden');
+}
+
+function saveSettings() {
+  CFG = {
+    ...CFG,
+    label:    document.getElementById('cfg-label').value  || CFG.label,
+    lat:      parseFloat(document.getElementById('cfg-lat').value)    || CFG.lat,
+    lon:      parseFloat(document.getElementById('cfg-lon').value)    || CFG.lon,
+    radiusKm: parseInt(document.getElementById('cfg-radius').value)   || CFG.radiusKm,
+    user:     document.getElementById('cfg-user').value,
+    pass:     document.getElementById('cfg-pass').value,
+  };
+  saveCfg(CFG);
+  document.getElementById('h-loc').textContent =
+    `${CFG.label} · ${CFG.lat.toFixed(4)}°N ${Math.abs(CFG.lon).toFixed(4)}°${CFG.lon < 0 ? 'W':'E'}`;
+  closeSettings();
+  firstLoad = true;
+  document.getElementById('loading').classList.remove('hidden','fade');
+  refresh();
+}
+
+// ---- Service worker ----
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+
+// ---- Boot ----
+document.getElementById('h-loc').textContent =
+  `${CFG.label} · ${CFG.lat.toFixed(4)}°N ${Math.abs(CFG.lon).toFixed(4)}°${CFG.lon < 0 ? 'W':'E'}`;
+tick();
+setInterval(tick, 1000);
+refresh();
+setInterval(refresh, CFG.refreshMs);
+acquireWakeLock();
+</script>
+</body>
+</html>

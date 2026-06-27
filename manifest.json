@@ -1,0 +1,27 @@
+{
+  "name": "FlightWall · Barnes SW13",
+  "short_name": "FlightWall",
+  "description": "Live ADS-B flight tracker for Barnes SW13 — Heathrow approach path",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#020202",
+  "theme_color": "#020202",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["utilities", "navigation"],
+  "lang": "en-GB"
+}
