@@ -1,7 +1,7 @@
 {
-  "name": "FlightWall · Barnes SW13",
-  "short_name": "FlightWall",
-  "description": "Live ADS-B flight tracker for Barnes SW13 — Heathrow approach path",
+  "name": "FlightDeck",
+  "short_name": "FlightDeck",
+  "description": "Live ADS-B aircraft tracker — shows flights near your current location",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
