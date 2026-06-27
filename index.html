@@ -632,50 +632,11 @@ function updateHeaderLocation() {
   document.getElementById('h-loc').textContent = `⊙ ${label}`;
 }
 
-// ---- ADS-B fetch — CORS-safe via proxy cascade ----
-//
-//  "Failed to fetch" = CORS block from the browser.
-//  The browser is not allowed to call external APIs directly from GitHub Pages.
-//  Solution: route through a CORS proxy that adds the necessary headers.
-//
-//  Priority order:
-//    1. User's own Cloudflare Worker (most reliable — see worker.js)
-//    2. corsproxy.io  (free public proxy, no setup needed)
-//    3. allorigins.win (second public proxy fallback)
-//
-//  Underlying data sources (tried via whichever proxy works):
-//    A. api.adsb.lol       — community ADS-B network
-//    B. api.airplanes.live — backup ADS-B network
-
-const API_SOURCES = [
-  (lat,lon,nm) => `https://api.adsb.lol/v2/lat/${lat}/lon/${lon}/dist/${nm}`,
-  (lat,lon,nm) => `https://api.airplanes.live/v2/lat/${lat}/lon/${lon}/dist/${nm}`,
-];
-
-// Proxy wrappers — applied to whichever API URL we're trying
-const PROXIES = [
-  // Cloudflare Worker (if user has set one up in settings)
-  raw => {
-    const w = STORE.workerUrl;
-    if (!w) return null;
-    return `${w.replace(/\/$/,'')}?url=${encodeURIComponent(raw)}`;
-  },
-  // corsproxy.io — free, no setup, well maintained
-  raw => `https://corsproxy.io/?${encodeURIComponent(raw)}`,
-  // allorigins.win — second fallback
-  raw => `https://api.allorigins.win/raw?url=${encodeURIComponent(raw)}`,
-];
+// ---- ADS-B fetch — via Cloudflare Worker only ----
+//  The Worker (worker.js) handles source-switching and CORS.
+//  The app just calls it with lat/lon/dist parameters.
 
 let activeSource = 'connecting…';
-
-
-async function tryOne(proxyFn, apiUrl) {
-  const url = proxyFn(apiUrl);
-  if (!url) throw new Error('proxy not configured');
-  const res = await fetch(url, { cache:'no-store' });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return await res.json();
-}
 
 function classify(hdg, alt, vr) {
   if (hdg>235 && hdg<305 && alt<8500 && alt>100 && vr<-150) return 'appr';
@@ -713,28 +674,25 @@ function parseAircraft(ac) {
 }
 
 async function fetchFlights() {
-  const log = [];
-  for (const proxyFn of PROXIES) {
-    for (const srcFn of API_SOURCES) {
-      const apiUrl = srcFn(STORE.lat, STORE.lon, STORE.dist);
-      try {
-        const data = await tryOne(proxyFn, apiUrl);
-        const ac = data.ac || data.aircraft || [];
-        // Record which combination worked
-        const proxyName = proxyFn === PROXIES[0] ? 'worker'
-          : proxyFn === PROXIES[1] ? 'corsproxy.io' : 'allorigins.win';
-        const srcName = apiUrl.includes('adsb.lol') ? 'adsb.lol' : 'airplanes.live';
-        activeSource = `${srcName} via ${proxyName}`;
-        return parseAircraft(ac);
-      } catch(e) {
-        const note = `${apiUrl.includes('adsb.lol')?'adsb.lol':'airplanes.live'}: ${e.message}`;
-        log.push(note);
-        console.warn('FlightDeck attempt failed:', note);
-      }
-    }
+  const w = STORE.workerUrl;
+  if (!w) throw new Error('No Worker URL set — open ⚙ settings and enter your Cloudflare Worker URL');
+
+  const url = `${w.replace(/\/+$/,'')}?lat=${STORE.lat}&lon=${STORE.lon}&dist=${STORE.dist}`;
+  const res = await fetch(url, { cache: 'no-store' });
+
+  let data;
+  try { data = await res.json(); } catch(e) { throw new Error(`Bad response from Worker (${res.status})`); }
+
+  if (!res.ok) {
+    const detail = data.detail?.slice(0,2).join(' · ') || data.error || `HTTP ${res.status}`;
+    throw new Error(`Worker: ${detail}`);
   }
-  throw new Error('All sources failed · ' + log.slice(0,3).join(' · '));
+
+  const ac = data.ac || data.aircraft || [];
+  activeSource = `${data._source || 'ADS-B'} via Worker`;
+  return parseAircraft(ac);
 }
+
 
 
 // ---- Render ----
