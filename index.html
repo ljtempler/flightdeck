@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-fullscreen">
-  <meta name="apple-mobile-web-app-title" content="FlightWall">
+  <meta name="apple-mobile-web-app-title" content="FlightDeck">
   <link rel="manifest" href="manifest.json">
-  <title>FlightWall</title>
+  <title>FlightDeck</title>
   <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
@@ -321,7 +321,7 @@
      in localStorage on this device.
 ======================================================== -->
 <div id="welcome">
-  <div class="w-logo">FLIGHTWALL</div>
+  <div class="w-logo">FLIGHTDECK</div>
   <div class="w-sub">LIVE ADS-B AIRCRAFT TRACKER</div>
   <div class="w-desc">
     Displays aircraft near you using live ADS-B data.<br>
@@ -451,31 +451,31 @@
 
 <script>
 // ============================================================
-//  FlightWall — Privacy-first PWA
+//  FlightDeck — Privacy-first PWA
 //  No coordinates in source code. Location stored on-device only.
 //  Data: adsb.lol (free, no auth required, CORS enabled)
 // ============================================================
 
 // ---- Persisted settings (localStorage only) ----
 const STORE = {
-  get lat()   { return parseFloat(localStorage.getItem('fw_lat')); },
-  get lon()   { return parseFloat(localStorage.getItem('fw_lon')); },
-  get label() { return localStorage.getItem('fw_label') || ''; },
-  get dist()  { return parseInt(localStorage.getItem('fw_dist')) || 22; },
-  get rows()  { return parseInt(localStorage.getItem('fw_rows')) || 8; },
-  get refresh(){ return parseInt(localStorage.getItem('fw_rfms')) || 12000; },
+  get lat()   { return parseFloat(localStorage.getItem('fd_lat')); },
+  get lon()   { return parseFloat(localStorage.getItem('fd_lon')); },
+  get label() { return localStorage.getItem('fd_label') || ''; },
+  get dist()  { return parseInt(localStorage.getItem('fd_dist')) || 22; },
+  get rows()  { return parseInt(localStorage.getItem('fd_rows')) || 8; },
+  get refresh(){ return parseInt(localStorage.getItem('fd_rfms')) || 12000; },
   hasLocation() { return !isNaN(this.lat) && !isNaN(this.lon) && this.lat && this.lon; },
   saveLoc(lat, lon, label) {
-    localStorage.setItem('fw_lat',   lat);
-    localStorage.setItem('fw_lon',   lon);
-    localStorage.setItem('fw_label', label || coordLabel(lat, lon));
+    localStorage.setItem('fd_lat',   lat);
+    localStorage.setItem('fd_lon',   lon);
+    localStorage.setItem('fd_label', label || coordLabel(lat, lon));
   },
   saveDisplay(dist, rows) {
-    localStorage.setItem('fw_dist', dist);
-    localStorage.setItem('fw_rows', rows);
+    localStorage.setItem('fd_dist', dist);
+    localStorage.setItem('fd_rows', rows);
   },
   forget() {
-    ['fw_lat','fw_lon','fw_label'].forEach(k => localStorage.removeItem(k));
+    ['fd_lat','fd_lon','fd_label'].forEach(k => localStorage.removeItem(k));
   },
 };
 
@@ -743,7 +743,7 @@ async function refresh() {
     setOk(flights.length);
   } catch(e) {
     setErr(e.message);
-    console.error('FlightWall:', e);
+    console.error('FlightDeck:', e);
   }
 }
 
