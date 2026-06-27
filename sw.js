@@ -1,5 +1,5 @@
-// FlightWall SW — caches app shell, network-first for API calls
-const CACHE   = 'flightwall-v1';
+// FlightDeck SW — caches app shell, network-first for API calls
+const CACHE   = 'flightdeck-v1';
 const SHELL   = ['/', '/index.html', '/manifest.json'];
 const OPENSKY = 'opensky-network.org';
 
