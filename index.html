@@ -376,7 +376,7 @@
   <div id="board"></div>
 
   <div id="footer">
-    <span>adsb.lol community network · <a href="https://adsb.lol">adsb.lol</a></span>
+    <span id="f-src">ADS-B data loading…</span>
     <span id="f-upd">--</span>
   </div>
 </div>
@@ -436,6 +436,17 @@
       <button class="sp-btn" onclick="spSaveDisplay()" style="margin-top:10px;">SAVE</button>
     </div>
 
+    <!-- Cloudflare Worker -->
+    <div class="sp-section">
+      <div class="sp-section-title">CLOUDFLARE WORKER <span style="color:#222100;font-size:11px;">(optional — see worker.js)</span></div>
+      <div class="sp-row">
+        <label class="sp-lbl">Worker URL</label>
+        <input class="sp-inp" id="sp-worker" type="url" placeholder="https://flightdeck.you.workers.dev">
+        <p class="sp-note">Improves reliability. Free setup — see the worker.js file in your GitHub repo for instructions. Leave blank to use public proxy (corsproxy.io).</p>
+      </div>
+      <button class="sp-btn" onclick="spSaveWorker()">SAVE WORKER URL</button>
+    </div>
+
     <!-- Danger zone -->
     <div class="sp-section">
       <button class="sp-btn danger" onclick="spForgetLocation()">FORGET LOCATION</button>
@@ -458,12 +469,13 @@
 
 // ---- Persisted settings (localStorage only) ----
 const STORE = {
-  get lat()   { return parseFloat(localStorage.getItem('fd_lat')); },
-  get lon()   { return parseFloat(localStorage.getItem('fd_lon')); },
-  get label() { return localStorage.getItem('fd_label') || ''; },
-  get dist()  { return parseInt(localStorage.getItem('fd_dist')) || 22; },
-  get rows()  { return parseInt(localStorage.getItem('fd_rows')) || 8; },
-  get refresh(){ return parseInt(localStorage.getItem('fd_rfms')) || 12000; },
+  get lat()       { return parseFloat(localStorage.getItem('fd_lat')); },
+  get lon()       { return parseFloat(localStorage.getItem('fd_lon')); },
+  get label()     { return localStorage.getItem('fd_label') || ''; },
+  get dist()      { return parseInt(localStorage.getItem('fd_dist')) || 22; },
+  get rows()      { return parseInt(localStorage.getItem('fd_rows')) || 8; },
+  get refresh()   { return parseInt(localStorage.getItem('fd_rfms')) || 12000; },
+  get workerUrl() { return localStorage.getItem('fd_worker') || ''; },
   hasLocation() { return !isNaN(this.lat) && !isNaN(this.lon) && this.lat && this.lon; },
   saveLoc(lat, lon, label) {
     localStorage.setItem('fd_lat',   lat);
@@ -473,6 +485,10 @@ const STORE = {
   saveDisplay(dist, rows) {
     localStorage.setItem('fd_dist', dist);
     localStorage.setItem('fd_rows', rows);
+  },
+  saveWorker(url) {
+    if (url) localStorage.setItem('fd_worker', url.trim());
+    else localStorage.removeItem('fd_worker');
   },
   forget() {
     ['fd_lat','fd_lon','fd_label'].forEach(k => localStorage.removeItem(k));
@@ -616,7 +632,50 @@ function updateHeaderLocation() {
   document.getElementById('h-loc').textContent = `⊙ ${label}`;
 }
 
-// ---- adsb.lol fetch ----
+// ---- ADS-B fetch — CORS-safe via proxy cascade ----
+//
+//  "Failed to fetch" = CORS block from the browser.
+//  The browser is not allowed to call external APIs directly from GitHub Pages.
+//  Solution: route through a CORS proxy that adds the necessary headers.
+//
+//  Priority order:
+//    1. User's own Cloudflare Worker (most reliable — see worker.js)
+//    2. corsproxy.io  (free public proxy, no setup needed)
+//    3. allorigins.win (second public proxy fallback)
+//
+//  Underlying data sources (tried via whichever proxy works):
+//    A. api.adsb.lol       — community ADS-B network
+//    B. api.airplanes.live — backup ADS-B network
+
+const API_SOURCES = [
+  (lat,lon,nm) => `https://api.adsb.lol/v2/lat/${lat}/lon/${lon}/dist/${nm}`,
+  (lat,lon,nm) => `https://api.airplanes.live/v2/lat/${lat}/lon/${lon}/dist/${nm}`,
+];
+
+// Proxy wrappers — applied to whichever API URL we're trying
+const PROXIES = [
+  // Cloudflare Worker (if user has set one up in settings)
+  raw => {
+    const w = STORE.workerUrl;
+    if (!w) return null;
+    return `${w.replace(/\/$/,'')}?url=${encodeURIComponent(raw)}`;
+  },
+  // corsproxy.io — free, no setup, well maintained
+  raw => `https://corsproxy.io/?${encodeURIComponent(raw)}`,
+  // allorigins.win — second fallback
+  raw => `https://api.allorigins.win/raw?url=${encodeURIComponent(raw)}`,
+];
+
+let activeSource = 'connecting…';
+
+async function tryOne(proxyFn, apiUrl) {
+  const url = proxyFn(apiUrl);
+  if (!url) throw new Error('proxy not configured');
+  const res = await fetch(url, { cache:'no-store' });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return await res.json();
+}
+
 function classify(hdg, alt, vr) {
   if (hdg>235 && hdg<305 && alt<8500 && alt>100 && vr<-150) return 'appr';
   if (alt<7000 && vr>400) return 'dept';
@@ -624,14 +683,7 @@ function classify(hdg, alt, vr) {
   return 'low';
 }
 
-async function fetchFlights() {
-  const url = `https://api.adsb.lol/v2/lat/${STORE.lat}/lon/${STORE.lon}/dist/${STORE.dist}`;
-  const res = await fetch(url, { cache:'no-store' });
-  if (!res.ok) throw new Error('adsb.lol ' + res.status);
-  const data = await res.json();
-  const ac = data.ac || data.aircraft || [];
-  if (!ac.length) return [];
-
+function parseAircraft(ac) {
   return ac
     .filter(a => {
       if (a.alt_baro === 'ground' || a.on_ground) return false;
@@ -659,6 +711,31 @@ async function fetchFlights() {
     .slice(0, STORE.rows);
 }
 
+async function fetchFlights() {
+  const log = [];
+  for (const proxyFn of PROXIES) {
+    for (const srcFn of API_SOURCES) {
+      const apiUrl = srcFn(STORE.lat, STORE.lon, STORE.dist);
+      try {
+        const data = await tryOne(proxyFn, apiUrl);
+        const ac = data.ac || data.aircraft || [];
+        // Record which combination worked
+        const proxyName = proxyFn === PROXIES[0] ? 'worker'
+          : proxyFn === PROXIES[1] ? 'corsproxy.io' : 'allorigins.win';
+        const srcName = apiUrl.includes('adsb.lol') ? 'adsb.lol' : 'airplanes.live';
+        activeSource = `${srcName} via ${proxyName}`;
+        return parseAircraft(ac);
+      } catch(e) {
+        const note = `${apiUrl.includes('adsb.lol')?'adsb.lol':'airplanes.live'}: ${e.message}`;
+        log.push(note);
+        console.warn('FlightDeck attempt failed:', note);
+      }
+    }
+  }
+  throw new Error('All sources failed · ' + log.slice(0,3).join(' · '));
+}
+
+
 // ---- Render ----
 const vrCls   = v => v>200  ? 'c-climb' : v<-200 ? 'c-desc' : 'c-level';
 const vrArrow = v => v>200  ? '▲' : v<-200 ? '▼' : '▬';
@@ -672,6 +749,15 @@ const BADGES  = {
   enrt: '<span class="f-badge b-enrt">EN ROUTE</span>',
   low:  '',
 };
+
+function showError(msg) {
+  const board = document.getElementById('board');
+  board.innerHTML = `<div id="empty">
+    <div class="e-main" style="color:#883300;font-size:24px;">DATA ERROR</div>
+    <div class="e-sub" style="color:#553300;max-width:480px;text-align:center;line-height:1.5;">${msg}</div>
+    <div class="e-sub" style="color:#333200;margin-top:12px;">Will retry in ${STORE.refresh/1000}s &nbsp;·&nbsp; Check browser console for details</div>
+  </div>`;
+}
 
 function renderFlights(flights) {
   const board = document.getElementById('board');
@@ -721,6 +807,7 @@ function setOk(n) {
   document.getElementById('h-live').textContent = 'LIVE';
   document.getElementById('h-live').style.color = '#446600';
   document.getElementById('h-count').textContent = `· ${n} aircraft`;
+  document.getElementById('f-src').textContent = activeSource;
   const d=new Date(), p=v=>String(v).padStart(2,'0');
   document.getElementById('f-upd').textContent =
     `updated ${p(d.getUTCHours())}:${p(d.getUTCMinutes())}:${p(d.getUTCSeconds())} UTC`;
@@ -730,7 +817,7 @@ function setErr(msg) {
   document.getElementById('h-live').textContent = 'ERR';
   document.getElementById('h-live').style.color = '#664400';
   document.getElementById('h-count').textContent = '';
-  document.getElementById('f-upd').textContent = msg;
+  document.getElementById('f-upd').textContent = '';
 }
 
 // ---- Main refresh ----
@@ -743,7 +830,8 @@ async function refresh() {
     setOk(flights.length);
   } catch(e) {
     setErr(e.message);
-    console.error('FlightDeck:', e);
+    showError(e.message);
+    console.error('FlightDeck fetch error:', e);
   }
 }
 
@@ -762,6 +850,7 @@ function openSettings() {
   document.getElementById('sp-label').value = STORE.label;
   document.getElementById('sp-dist').value  = STORE.dist;
   document.getElementById('sp-rows').value  = STORE.rows;
+  document.getElementById('sp-worker').value = STORE.workerUrl;
   document.getElementById('sp-loc-status').textContent = '';
   document.getElementById('settings').classList.remove('hidden');
 }
@@ -808,6 +897,13 @@ function spSaveDisplay() {
   const rows = parseInt(document.getElementById('sp-rows').value) || STORE.rows;
   STORE.saveDisplay(dist, rows);
   closeSettings();
+  startApp();
+}
+
+function spSaveWorker() {
+  const url = document.getElementById('sp-worker').value.trim();
+  STORE.saveWorker(url);
+  document.getElementById('sp-loc-status').textContent = url ? `✓ Worker URL saved` : '✓ Worker URL cleared';
   startApp();
 }
 
