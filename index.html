@@ -474,7 +474,7 @@ const STORE = {
   get label()     { return localStorage.getItem('fd_label') || ''; },
   get dist()      { return parseInt(localStorage.getItem('fd_dist')) || 22; },
   get rows()      { return parseInt(localStorage.getItem('fd_rows')) || 8; },
-  get refresh()   { return parseInt(localStorage.getItem('fd_rfms')) || 20000; },
+  get refresh()   { return parseInt(localStorage.getItem('fd_rfms')) || 30000; },
   get workerUrl() { return localStorage.getItem('fd_worker') || ''; },
   hasLocation() { return !isNaN(this.lat) && !isNaN(this.lon) && this.lat && this.lon; },
   saveLoc(lat, lon, label) {
@@ -771,6 +771,14 @@ function setOk(n) {
   document.getElementById('f-upd').textContent =
     `updated ${p(d.getUTCHours())}:${p(d.getUTCMinutes())}:${p(d.getUTCSeconds())} UTC`;
 }
+function setStale(msg) {
+  // Keep display live but show that data is from a previous fetch
+  document.getElementById('live-dot').className = 'dot';
+  document.getElementById('live-dot').style.background = '#886600';
+  document.getElementById('h-live').textContent = 'STALE';
+  document.getElementById('h-live').style.color = '#665500';
+  document.getElementById('f-upd').textContent = '429 · retrying in ' + Math.round(STORE.refresh/1000) + 's';
+}
 function setErr(msg) {
   document.getElementById('live-dot').className = 'dot err';
   document.getElementById('h-live').textContent = 'ERR';
@@ -780,17 +788,25 @@ function setErr(msg) {
 }
 
 // ---- Main refresh ----
-let refreshTimer = null;
+let refreshTimer  = null;
+let lastGoodFlights = [];   // holds last successful fetch so display stays up on 429
 
 async function refresh() {
   try {
     const flights = await fetchFlights();
+    lastGoodFlights = flights;
     renderFlights(flights);
     setOk(flights.length);
   } catch(e) {
-    setErr(e.message);
-    showError(e.message);
     console.error('FlightDeck fetch error:', e);
+    // On error, keep showing last good data with a stale indicator
+    if (lastGoodFlights.length) {
+      renderFlights(lastGoodFlights);
+      setStale(e.message);
+    } else {
+      setErr(e.message);
+      showError(e.message);
+    }
   }
 }
 
