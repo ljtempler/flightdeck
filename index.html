@@ -126,8 +126,8 @@
     /* Row 1, Col 1 — identity summary */
     .fd-cell-id { gap:clamp(6px,1vw,10px); }
 
-    .fd-logo-img   { width:32px; height:32px; border-radius:4px; object-fit:contain; background:white; padding:2px; flex-shrink:0; }
-    .fd-logo-badge { width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:600; color:white; flex-shrink:0; }
+    .fd-logo-img   { width:120px; height:30px; border-radius:4px; object-fit:contain; background:white; padding:2px 6px; flex-shrink:0; }
+    .fd-logo-badge { width:70px;  height:30px; border-radius:4px; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:600; color:white; flex-shrink:0; letter-spacing:.04em; }
 
     .fd-id-text { display:flex; flex-direction:column; gap:2px; flex:1; min-width:0; overflow:hidden; }
     .fd-aname   { font-size:clamp(12px,1.7vh,17px); font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -426,11 +426,14 @@ const AL = {
   TCX:{n:'TUI Airways',        iata:'BY', col:'#CC0066'},
   BEE:{n:'Flybe',              iata:'BE', col:'#7B0099'},
   WUK:{n:'Wizz Air UK',        iata:'W9', col:'#C6007E'},
-  // Europe
+  // Europe — Lufthansa Group (expanded)
   DLH:{n:'Lufthansa',          iata:'LH', col:'#05164D'},
   CLH:{n:'Lufthansa CityLine', iata:'CL', col:'#05164D'},
+  LHX:{n:'Lufthansa',          iata:'LH', col:'#05164D'}, // training/special/ferry
+  GEC:{n:'Lufthansa Cargo',    iata:'LH', col:'#05164D'},
   EWG:{n:'Eurowings',          iata:'EW', col:'#800080'},
   GWI:{n:'Eurowings',          iata:'EW', col:'#800080'},
+  EWE:{n:'Eurowings',          iata:'EW', col:'#800080'},
   AFR:{n:'Air France',         iata:'AF', col:'#002157'},
   TVF:{n:'Transavia France',   iata:'TO', col:'#006400'},
   KLM:{n:'KLM',                iata:'KL', col:'#009DBB'},
@@ -461,6 +464,26 @@ const AL = {
   BTI:{n:'airBaltic',          iata:'BT', col:'#00205B'},
   BCS:{n:'European Air Trans', iata:'QY', col:'#003580'},
   CAI:{n:'Corendon Airlines',  iata:'XC', col:'#FF6600'},
+  RRR:{n:'Royal Air Force',    iata:null, col:'#003580'},
+  GAF:{n:'German Air Force',   iata:null, col:'#003580'},
+  RFR:{n:'French Air Force',   iata:null, col:'#0055A4'},
+  HVN:{n:'Vietnam Airlines',   iata:'VN', col:'#003580'},
+  SVB:{n:'Saudia Cargo',       iata:'SV', col:'#006600'},
+  TKF:{n:'Turkish Cargo',      iata:'TK', col:'#C8102E'},
+  DLA:{n:'Dolomiti Air',       iata:'EN', col:'#003580'},
+  AZB:{n:'AIR2000',            iata:'DP', col:'#003580'},
+  BRT:{n:'British Int\'l',     iata:null, col:'#003580'},
+  HYR:{n:'Hainan Airlines',    iata:'HU', col:'#CC0000'},
+  CDG:{n:'Shandong Airlines',  iata:'SC', col:'#CC0000'},
+  CSZ:{n:'Shenzhen Airlines',  iata:'ZH', col:'#CC0000'},
+  CHH:{n:'China Hainan',       iata:'HU', col:'#CC0000'},
+  CXA:{n:'Xiamen Air',         iata:'MF', col:'#003580'},
+  ATC:{n:'Air Transat',        iata:'TS', col:'#CC0000'},
+  ELB:{n:'El Al Cargo',        iata:'LY', col:'#003580'},
+  ISR:{n:'Arkia',              iata:'IZ', col:'#003580'},
+  OHY:{n:'Onur Air',           iata:'8Q', col:'#003580'},
+  APJ:{n:'Peach Aviation',     iata:'MM', col:'#FF6699'},
+  JNA:{n:'Jeju Air',           iata:'7C', col:'#FF6600'},
   // Middle East / Africa
   UAE:{n:'Emirates',           iata:'EK', col:'#C60C30'},
   ETD:{n:'Etihad Airways',     iata:'EY', col:'#BF9B0C'},
@@ -589,7 +612,7 @@ function onLogoError(img) {
 function logoHtml(al) {
   const init = (al.iata || al.n.substring(0,2)).toUpperCase();
   if (!al.iata) return `<div class="fd-logo-badge" style="background:${al.col};">${init}</div>`;
-  return `<img class="fd-logo-img" src="https://pics.avs.io/60/60/${al.iata}.png" data-col="${al.col}" data-init="${init}" onerror="onLogoError(this)" alt="${al.n}" loading="lazy">`;
+  return `<img class="fd-logo-img" src="https://pics.avs.io/200/60/${al.iata}.png" data-col="${al.col}" data-init="${init}" onerror="onLogoError(this)" alt="${al.n}" loading="lazy">`;
 }
 
 // ---- Geolocation ----
@@ -725,12 +748,17 @@ function cardBadgeHtml(cls) {
 }
 
 // Convert ICAO callsign (BAW182) → IATA flight number (BA182) for display
+// Handles: standard (BAW182→BA182), alpha suffix (BAW18A→BA18A),
+//          registration-style (GUZMC→GUZMC), unknown prefix (returns raw)
 function displayCallsign(cs) {
-  const prefix = cs.replace(/[0-9].*$/, '').toUpperCase();
+  if (!cs) return '';
+  // Extract alphabetic prefix (stops at first digit or end)
+  const prefix = cs.match(/^([A-Z]+)/)?.[1] || '';
   const al = AL[prefix];
-  if (!al?.iata) return cs;                    // unknown prefix — show raw
-  const num = cs.replace(/^[A-Z]+/, '').trim(); // numeric/alpha suffix
-  return al.iata + num;                         // e.g. BA182, U257AY, EK203
+  if (!al?.iata) return cs;            // unknown prefix — show raw ICAO
+  const num = cs.slice(prefix.length); // everything after the prefix
+  if (!num) return cs;                 // no number part — show raw
+  return al.iata + num;                // e.g. BA182, U257AY, EK203
 }
 
 function renderCard(f, route) {
