@@ -708,6 +708,7 @@ async function fetchFlights() {
       typeCode: a.t||'',
       navModes: a.nav_modes||[],
       squawk:   a.squawk||'',
+      category: a.category||'',
       cls:      classify(hdg, a.alt_baro, vr, a.nav_modes),
       airline:  getAirline(cs),
     };
@@ -721,6 +722,15 @@ function cardBadgeHtml(cls) {
   const map = {appr:'ILS APPR b-appr', dept:'DEPARTING b-dept', enrt:'EN ROUTE b-enrt', low:'LOW ALT b-low'};
   const s = (map[cls]||'LOW ALT b-low').split(' ');
   return `<span class="fd-badge ${s[s.length-1]}">${s[0]}</span>`;
+}
+
+// Convert ICAO callsign (BAW182) → IATA flight number (BA182) for display
+function displayCallsign(cs) {
+  const prefix = cs.replace(/[0-9].*$/, '').toUpperCase();
+  const al = AL[prefix];
+  if (!al?.iata) return cs;                    // unknown prefix — show raw
+  const num = cs.replace(/^[A-Z]+/, '').trim(); // numeric/alpha suffix
+  return al.iata + num;                         // e.g. BA182, U257AY, EK203
 }
 
 function renderCard(f, route) {
@@ -743,7 +753,7 @@ function renderCard(f, route) {
         ${logoHtml(al)}
         <div class="fd-id-text">
           <span class="fd-aname">${al.n}</span>
-          <span class="fd-callsign">${f.cs}</span>
+          <span class="fd-callsign">${displayCallsign(f.cs)}</span>
           ${f.reg ? `<span class="fd-reg">${f.reg}</span>` : ''}
         </div>
         <div class="fd-badges">
@@ -778,7 +788,7 @@ function renderCard(f, route) {
               <div style="flex:1;height:1px;background:var(--border);"></div>
               <span style="color:var(--dim);font-size:9px;">▶</span>
             </div>
-            ${f.typeCode ? `<span style="font-size:clamp(9px,1.2vh,13px);font-weight:600;color:#60c0ff;letter-spacing:.04em;">${f.typeCode}</span>` : ''}
+            ${f.typeCode ? `<span style="font-size:clamp(9px,1.2vh,13px);font-weight:500;color:var(--mid);letter-spacing:.02em;">${typeName(f.typeCode) || f.typeCode}</span>` : ''}
           </div>
           <div style="text-align:center;flex-shrink:0;min-width:36px;">
             <div class="fd-iata${arr==='---'?' dim':''}" style="font-size:clamp(13px,1.9vh,21px);">${arr}</div>
@@ -878,7 +888,10 @@ let refreshTimer = null;
 async function refresh() {
   try {
     const all   = await fetchFlights();
-    const helis = all.filter(f => f.typeCode.match(/^EC|^H1|^H6|^S76|^AS3|^AS5|^R22|^R44|^BK1|TWR/) || f.airline.n.includes('Helicopter') );
+    const helis = all.filter(f =>
+      f.category === 'A7'   // ADS-B rotorcraft category — most reliable
+      || /^EC|^H1|^H6|^H7|^S7[0-9]|^R22|^R44|^BK|^AW1|^B06|^B47|^A10[0-9]|^AS3/.test(f.typeCode)
+    );
     const planes = all.filter(f => !helis.includes(f)).slice(0,4);
 
     lastGoodData = {planes, helis};
