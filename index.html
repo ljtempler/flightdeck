@@ -103,22 +103,22 @@
     }
 
     /* Two main flight cards */
-    .fd-cards { display:grid; grid-template-columns:1fr 1fr; gap:8px; flex:1; min-height:0; }
+    .fd-cards { display:flex; flex-direction:column; gap:8px; flex:1; min-height:0; }
 
     /* Flight card */
     .fd-card {
       background:var(--card); border:1px solid var(--border); border-radius:10px;
-      overflow:hidden; display:flex; flex-direction:column;
+      overflow:hidden; display:flex; flex-direction:row; align-items:stretch; flex:1; min-height:0;
     }
-    .fd-stripe { height:3px; flex-shrink:0; }
+    .fd-stripe { width:4px; flex-shrink:0; }
 
     /* Card header: logo + airline + callsign + status */
     .fd-chead {
-      display:flex; align-items:center; justify-content:space-between;
-      padding:8px 12px; border-bottom:1px solid var(--border); flex-shrink:0;
+      display:flex; flex-direction:column; justify-content:center; gap:7px;
+      padding:10px 14px; border-right:1px solid var(--border); flex-shrink:0; width:210px;
     }
     .fd-logo-row { display:flex; align-items:center; gap:8px; }
-    .fd-logo-img { width:34px; height:34px; border-radius:5px; object-fit:contain; background:#0a1828; padding:2px; flex-shrink:0; }
+    .fd-logo-img { width:34px; height:34px; border-radius:5px; object-fit:contain; background:white; padding:2px; flex-shrink:0; }
     .fd-logo-badge { width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:600; color:white; flex-shrink:0; }
     .fd-ainfo { display:flex; flex-direction:column; gap:1px; }
     .fd-aname { font-size:clamp(12px,1.6vh,15px); font-weight:500; color:var(--text); }
@@ -132,7 +132,7 @@
     /* Route row */
     .fd-route {
       display:flex; align-items:center; padding:8px 12px;
-      border-bottom:1px solid var(--border); flex-shrink:0;
+      border-right:1px solid var(--border); flex-shrink:0; width:200px;
     }
     .fd-apt { text-align:center; min-width:50px; }
     .fd-iata { font-size:clamp(20px,3vh,28px); font-weight:600; color:var(--text); line-height:1; }
@@ -147,16 +147,15 @@
     .fd-arr   { font-size:9px; color:#2a3a50; }
 
     /* Stats grid */
-    .fd-stats { display:grid; border-bottom:1px solid var(--border); flex-shrink:0; }
-    .fd-stats.cols3 { grid-template-columns:1fr 1fr 1fr; }
-    .fd-stat { padding:8px 0; text-align:center; border-right:1px solid var(--border); }
+    .fd-stats { display:flex; flex:1; border-right:1px solid var(--border); }
+    .fd-stat { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:6px 4px; border-right:1px solid var(--border); }
     .fd-stat:last-child { border-right:none; }
     .fd-sv { font-size:clamp(16px,2.8vh,26px); font-weight:600; color:var(--text); line-height:1; }
     .fd-sk { font-size:9px; color:var(--dim); margin-top:3px; letter-spacing:.05em; }
 
     /* Secondary stats */
-    .fd-stats2 { display:grid; grid-template-columns:1fr 1fr 1fr; flex-shrink:0; }
-    .fd-st2 { padding:6px 0; text-align:center; border-right:1px solid var(--border); }
+    .fd-stats2 { display:flex; flex-shrink:0; width:190px; }
+    .fd-st2 { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:6px 4px; border-right:1px solid var(--border); }
     .fd-st2:last-child { border-right:none; }
     .fd-s2v { font-size:clamp(12px,2vh,17px); font-weight:500; line-height:1; }
     .fd-s2k { font-size:9px; color:var(--dim); margin-top:2px; letter-spacing:.04em; }
@@ -686,7 +685,7 @@ function logoHtml(airline) {
 function renderCard(f, route) {
   const al  = f.airline;
   const dep = route?.departure || '---';
-  const arr = route?.arrival   || 'LHR';
+  const arr = route?.arrival   || '---';
   const airborne = route?.firstSeen ? fmtAirborne(route.firstSeen) : null;
   const vrClass  = f.vr > 200 ? 'clr-g' : f.vr < -200 ? 'clr-r' : 'clr-a';
   const vrStr    = fmtVr(f.vr);
@@ -727,7 +726,7 @@ function renderCard(f, route) {
         </div>
       </div>
 
-      <div class="fd-stats cols3">
+      <div class="fd-stats">
         <div class="fd-stat">
           <div class="fd-sv ${altClass}">${f.alt.toLocaleString()}</div>
           <div class="fd-sk">ALT ft</div>
@@ -740,13 +739,13 @@ function renderCard(f, route) {
           <div class="fd-sv">${f.dist}</div>
           <div class="fd-sk">DIST km</div>
         </div>
+        <div class="fd-stat">
+          <div class="fd-sv ${vrClass}">${vrStr} ${f.vr>200?'↑':f.vr<-200?'↓':'→'}</div>
+          <div class="fd-sk">V/S fpm</div>
+        </div>
       </div>
 
       <div class="fd-stats2">
-        <div class="fd-st2">
-          <div class="fd-s2v ${vrClass}">${vrStr} ${f.vr>200?'↑':f.vr<-200?'↓':'→'}</div>
-          <div class="fd-s2k">V/S</div>
-        </div>
         <div class="fd-st2">
           <div class="fd-s2v ${airborne?'':'clr-d'}">${airborne||'---'}</div>
           <div class="fd-s2k">AIRBORNE</div>
