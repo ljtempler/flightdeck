@@ -131,7 +131,9 @@
 
     .fd-id-text { display:flex; flex-direction:column; gap:2px; flex:1; min-width:0; overflow:hidden; }
     .fd-aname   { font-size:clamp(12px,1.7vh,17px); font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .fd-csreg   { font-size:clamp(9px,1.1vh,12px); color:var(--dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .fd-csreg   { font-size:clamp(9px,1.1vh,12px); color:var(--mid); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .fd-callsign { font-size:clamp(11px,1.4vh,15px); font-weight:600; color:var(--text); letter-spacing:.03em; white-space:nowrap; }
+    .fd-reg      { font-size:clamp(9px,1.1vh,12px); color:var(--mid); }
 
     .fd-badges  { display:flex; flex-direction:column; gap:3px; align-items:flex-end; flex-shrink:0; }
     .fd-badge   { font-size:clamp(8px,1vh,11px); padding:1px 6px; border-radius:3px; font-weight:500; white-space:nowrap; }
@@ -139,7 +141,7 @@
     .b-dept { background:#1a1800; color:#cccc00; border:1px solid #3a3800; }
     .b-enrt { background:#0a0a22; color:var(--blue); border:1px solid #1a2060; }
     .b-low  { background:#111820; color:var(--mid); border:1px solid #1a2840; }
-    .fd-type-tag { background:#0d1e32; border:1px solid #1a3050; border-radius:3px; padding:1px 6px; font-size:clamp(9px,1.1vh,12px); font-weight:500; color:#80aad0; white-space:nowrap; }
+    .fd-type-tag { background:#0d1e32; border:1px solid #1a3050; border-radius:3px; padding:1px 6px; font-size:clamp(9px,1.1vh,12px); font-weight:600; color:#60c0ff; white-space:nowrap; }
 
     /* Row 2, Col 1 — journey */
     .fd-cell-journey { gap:6px; flex-wrap:wrap; }
@@ -340,19 +342,68 @@ const S = {
   forget() { ['fd_lat','fd_lon','fd_label'].forEach(k => localStorage.removeItem(k)); },
 };
 
-// ---- Session first-seen tracking (resets on page reload) ----
-const sessionSeen = new Map(); // callsign → timestamp
-
-function recordSeen(cs) {
-  if (!sessionSeen.has(cs)) sessionSeen.set(cs, Date.now());
-}
-
+// ---- Session first-seen tracking ----
+const sessionSeen = new Map();
+function recordSeen(cs) { if (!sessionSeen.has(cs)) sessionSeen.set(cs, Date.now()); }
 function seenLabel(cs) {
   if (!sessionSeen.has(cs)) return null;
   const mins = Math.floor((Date.now() - sessionSeen.get(cs)) / 60000);
   if (mins < 1) return 'just now';
   if (mins < 60) return `${mins}m ago`;
   return `${Math.floor(mins/60)}h ${mins%60}m`;
+}
+
+// ---- ICAO4 → IATA3 airport conversion ----
+const ICAO_IATA = {
+  EGLL:'LHR',EGKK:'LGW',EGSS:'STN',EGGW:'LTN',EGLC:'LCY',EGCC:'MAN',EGBB:'BHX',
+  EGGD:'BRS',EGPH:'EDI',EGPF:'GLA',EGNX:'EMA',EIDW:'DUB',EINN:'SNN',
+  KJFK:'JFK',KLAX:'LAX',KORD:'ORD',KDFW:'DFW',KATL:'ATL',KLGA:'LGA',KEWR:'EWR',
+  KBOS:'BOS',KMIA:'MIA',KIAD:'IAD',KSFO:'SFO',KSEA:'SEA',KDEN:'DEN',KMCO:'MCO',
+  CYYZ:'YYZ',CYVR:'YVR',CYUL:'YUL',
+  EDDF:'FRA',EDDM:'MUC',EDDL:'DUS',EDDB:'BER',LFPG:'CDG',LFPO:'ORY',
+  EHAM:'AMS',EBBR:'BRU',LEMD:'MAD',LEBL:'BCN',LIRF:'FCO',LIME:'BGY',LIPZ:'VCE',
+  LPPT:'LIS',LKPR:'PRG',EPWA:'WAW',LHBP:'BUD',LOWW:'VIE',EFHK:'HEL',
+  ESSA:'ARN',EKCH:'CPH',ENGM:'OSL',OMDB:'DXB',OMAA:'AUH',OTHH:'DOH',
+  OERK:'RUH',LLBG:'TLV',LTFM:'IST',VHHH:'HKG',WSSS:'SIN',RJTT:'HND',
+  RJAA:'NRT',RKSI:'ICN',ZBAA:'PEK',ZSPD:'PVG',VIDP:'DEL',VABB:'BOM',
+  YSSY:'SYD',YMML:'MEL',NZAA:'AKL',FAOR:'JNB',HAAB:'ADD',HECA:'CAI',
+  MMMX:'MEX',SBGR:'GRU',SAEZ:'EZE',SCEL:'SCL',UUEE:'SVO',UUDD:'DME',
+};
+function icaoToIata(code) { return code ? (ICAO_IATA[code.toUpperCase()] || code.substring(0,4)) : null; }
+
+// ---- Route cache (per callsign, 4h TTL) ----
+const routeCache = new Map();
+const ROUTE_TTL  = 4 * 3600 * 1000;
+function getCachedRoute(cs) {
+  const r = routeCache.get(cs);
+  if (!r) return null;
+  if (Date.now() - r.fetched > ROUTE_TTL) { routeCache.delete(cs); return null; }
+  return r;
+}
+async function fetchRouteInfo(hex, cs) {
+  const cached = getCachedRoute(cs);
+  if (cached) return cached;
+  try {
+    const res = await fetch(`${WORKER}/flight?hex=${hex}`, { cache:'no-store' });
+    if (!res.ok) return null;
+    const d = await res.json();
+    if (!d.found) { routeCache.set(cs, { found:false, fetched:Date.now() }); return null; }
+    const info = { found:true, departure:icaoToIata(d.departure), arrival:icaoToIata(d.arrival), firstSeen:d.firstSeen, fetched:Date.now() };
+    routeCache.set(cs, info);
+    return info;
+  } catch(e) { return null; }
+}
+
+// ---- Flight status: phase + ETA to land ----
+function statusInfo(f) {
+  const labels = { appr:'ON APPROACH', dept:'DEPARTING', enrt:'EN ROUTE', low:'LOW ALT' };
+  const label  = labels[f.cls] || f.cls.toUpperCase();
+  let eta = null;
+  if (f.cls === 'appr' && f.vr < -100 && f.alt > 0) {
+    const mins = Math.round(Math.abs(f.alt / f.vr));
+    eta = mins < 1 ? '< 1 min' : `~${mins} min`;
+  }
+  return { label, eta };
 }
 
 // ---- Airline lookup (ICAO 3-letter callsign prefix → name, IATA code, colour) ----
@@ -672,28 +723,28 @@ function cardBadgeHtml(cls) {
   return `<span class="fd-badge ${s[s.length-1]}">${s[0]}</span>`;
 }
 
-function renderCard(f) {
+function renderCard(f, route) {
   const al       = f.airline;
   const altClass = f.alt < 3000 ? 'clr-r' : f.alt > 25000 ? '' : 'clr-a';
   const vrClass  = f.vr > 200 ? 'clr-g' : f.vr < -200 ? 'clr-r' : 'clr-a';
   const vrDir    = f.vr > 200 ? '↑' : f.vr < -200 ? '↓' : '→';
-  const seen     = seenLabel(f.cs);
-  // Only show LHR for confirmed ILS approach — all others show ---
-  const arr = f.cls === 'appr' ? 'LHR' : '---';
-  const dep = '---';
-  const tn  = typeName(f.typeCode);
-  const emg = ['7700','7600','7500'].includes(f.squawk);
+  const dep      = route?.departure || '---';
+  const arr      = route?.arrival   || '---';
+  const emg      = ['7700','7600','7500'].includes(f.squawk);
+  const si       = statusInfo(f);
+  const siClass  = f.cls==='appr' ? 'clr-g' : f.cls==='dept' ? 'clr-a' : 'clr-d';
 
   return `<div class="fd-card">
     <div class="fd-stripe" style="background:${al.col};"></div>
     <div class="fd-grid">
 
-      <!-- Row 1: identity summary -->
+      <!-- Row 1: identity -->
       <div class="fd-cell fd-cell-id">
         ${logoHtml(al)}
         <div class="fd-id-text">
           <span class="fd-aname">${al.n}</span>
-          <span class="fd-csreg">${f.cs}${f.reg?' · '+f.reg:''}</span>
+          <span class="fd-callsign">${f.cs}</span>
+          ${f.reg ? `<span class="fd-reg">${f.reg}</span>` : ''}
         </div>
         <div class="fd-badges">
           ${cardBadgeHtml(f.cls)}
@@ -715,12 +766,25 @@ function renderCard(f) {
         <div class="fd-sk">DIST km</div>
       </div>
 
-      <!-- Row 2: journey view -->
-      <div class="fd-cell fd-cell-journey">
-        <span class="fd-iata dim">${dep}</span>
-        <span class="fd-arr-sep">──▶</span>
-        <span class="fd-iata${arr==='---'?' dim':''}">${arr}</span>
-        ${tn ? `<span class="fd-sep">·</span><span class="fd-type-full">${tn}</span>` : ''}
+      <!-- Row 2: origin · type · dest -->
+      <div class="fd-cell" style="padding:clamp(4px,1vh,9px) clamp(8px,1.4vw,14px);">
+        <div style="display:flex;align-items:center;width:100%;gap:4px;min-width:0;">
+          <div style="text-align:center;flex-shrink:0;min-width:36px;">
+            <div class="fd-iata${dep==='---'?' dim':''}" style="font-size:clamp(13px,1.9vh,21px);">${dep}</div>
+            <div style="font-size:9px;color:var(--dim);letter-spacing:.05em;">FROM</div>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:0;padding:0 2px;">
+            <div style="display:flex;align-items:center;width:100%;gap:2px;">
+              <div style="flex:1;height:1px;background:var(--border);"></div>
+              <span style="color:var(--dim);font-size:9px;">▶</span>
+            </div>
+            ${f.typeCode ? `<span style="font-size:clamp(9px,1.2vh,13px);font-weight:600;color:#60c0ff;letter-spacing:.04em;">${f.typeCode}</span>` : ''}
+          </div>
+          <div style="text-align:center;flex-shrink:0;min-width:36px;">
+            <div class="fd-iata${arr==='---'?' dim':''}" style="font-size:clamp(13px,1.9vh,21px);">${arr}</div>
+            <div style="font-size:9px;color:var(--dim);letter-spacing:.05em;">TO</div>
+          </div>
+        </div>
       </div>
 
       <div class="fd-cell fd-cell-data">
@@ -728,8 +792,9 @@ function renderCard(f) {
         <div class="fd-sk">V/S fpm</div>
       </div>
       <div class="fd-cell fd-cell-data">
-        <div class="fd-sv ${seen?'':'clr-d'}">${seen||'---'}</div>
-        <div class="fd-sk">IN RANGE</div>
+        <div class="fd-sv ${siClass}" style="font-size:clamp(9px,1.3vh,14px);text-align:center;line-height:1.2;">${si.label}</div>
+        ${si.eta ? `<div style="font-size:clamp(8px,1vh,12px);color:var(--amber);margin-top:2px;">${si.eta}</div>` : ''}
+        <div class="fd-sk">STATUS</div>
       </div>
       <div class="fd-cell fd-cell-data">
         <div class="fd-sv">${bearingArrow(f.dir)}</div>
@@ -833,7 +898,7 @@ async function refresh() {
   }
 }
 
-function render(planes, helis) {
+async function render(planes, helis) {
   const cards = document.getElementById('cards');
   if (!planes.length && !helis.length) {
     showEmpty('No aircraft in range', `r=${S.dist}nm · refreshing every ${Math.round(S.refresh/1000)}s`);
@@ -843,7 +908,9 @@ function render(planes, helis) {
   if (!planes.length) {
     cards.innerHTML = '<div style="flex:1;display:flex;align-items:center;justify-content:center;color:var(--dim);font-size:15px;">No fixed-wing aircraft in range</div>';
   } else {
-    cards.innerHTML = planes.map(renderCard).join('');
+    // Fetch route info for displayed planes — cached, only new callsigns hit OpenSky
+    const routes = await Promise.all(planes.map(f => fetchRouteInfo(f.hex, f.cs)));
+    cards.innerHTML = planes.map((f,i) => renderCard(f, routes[i])).join('');
   }
   renderHelicopters(helis);
 }
